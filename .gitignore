@@ -1,0 +1,15 @@
+node_modules/
+.expo/
+dist/
+web-build/
+*.log
+.DS_Store
+
+# Nunca subir claves
+.env
+.env.local
+.env.*.local
+
+# Nativo generado
+/ios
+/android

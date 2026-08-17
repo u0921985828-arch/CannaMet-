@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "MATCH",
+    "slug": "match",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "match",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#14110E"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.match.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "MATCH usa tu ubicación para mostrarte a qué distancia están otras personas. Tus coordenadas nunca se comparten."
+      }
+    },
+    "android": {
+      "package": "com.match.app",
+      "adaptiveIcon": { "backgroundColor": "#14110E" },
+      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "MATCH usa tu ubicación para mostrarte a qué distancia están otras personas. Tus coordenadas nunca se comparten."
+        }
+      ]
+    ]
+  }
+}
