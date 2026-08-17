@@ -6,6 +6,7 @@ import { Text, View } from 'react-native';
 
 import { Cargando } from '@/componentes/Estados';
 import { useSesion } from '@/contexts/SesionContext';
+import { useAvisos } from '@/hooks/useAvisos';
 import { useEsModerador } from '@/hooks/useModeracionPanel';
 import { AuthScreen } from '@/pantallas/AuthScreen';
 import { ChatScreen } from '@/pantallas/ChatScreen';
@@ -17,6 +18,7 @@ import { OnboardingScreen } from '@/pantallas/OnboardingScreen';
 import { PerfilScreen } from '@/pantallas/PerfilScreen';
 import { SuspensionScreen } from '@/pantallas/SuspensionScreen';
 import { C, FUENTES } from '@/theme/tokens';
+import { refNavegacion } from './ref';
 import type { ParamsRaiz, ParamsTabs } from './tipos';
 
 const Tabs = createBottomTabNavigator<ParamsTabs>();
@@ -118,13 +120,15 @@ export function RootNavigator() {
     marcarConsentimiento,
   } = useSesion();
 
+  useAvisos();
+
   const suspendido =
     !!perfil?.suspendido_hasta && new Date(perfil.suspendido_hasta) > new Date();
 
   if (cargando) return <Cargando texto="MATCH" />;
 
   return (
-    <NavigationContainer theme={TEMA}>
+    <NavigationContainer theme={TEMA} ref={refNavegacion}>
       {!sesion ? (
         <AuthScreen />
       ) : necesitaConsentimiento ? (

@@ -14,6 +14,7 @@ import type {
   ResumenMatch,
 } from '@/types/modelos';
 import { log, medir } from './log';
+import { desactivarAvisos } from './notificaciones';
 import { supabase } from './supabaseClient';
 
 const AMBITO = 'api';
@@ -46,6 +47,9 @@ export async function iniciarSesion(email: string, password: string) {
 }
 
 export async function cerrarSesion(): Promise<void> {
+  // El aparato se da de baja ANTES del signOut: despues el token de acceso ya
+  // no vale y este movil seguiria recibiendo los avisos de la cuenta cerrada.
+  await desactivarAvisos();
   await medir(AMBITO, 'auth.signOut', async () => {
     const { error } = await supabase.auth.signOut();
     comprobar(error);

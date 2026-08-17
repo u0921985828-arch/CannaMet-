@@ -14,6 +14,8 @@ module.exports = [
       '.expo/',
       'src/types/database.ts',
       'eslint.config.js',
+      // Deno, no React Native: otro runtime y otras globales.
+      'supabase/functions/',
     ],
   },
   {

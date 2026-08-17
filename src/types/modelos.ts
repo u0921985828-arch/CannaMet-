@@ -122,3 +122,16 @@ export const SANCIONES: readonly {
 export type EstadoApelacion = Enumeracion<'estado_apelacion'>;
 export type Apelacion = Tablas<'apelaciones'>;
 export type ApelacionEnCola = RetornoRpc<'moderacion_apelaciones'>[number];
+
+// ───────────────────────── Avisos push ─────────────────────────
+
+export type PlataformaDispositivo = Enumeracion<'plataforma_dispositivo'>;
+export type TipoNotificacion = Enumeracion<'tipo_notificacion'>;
+
+/** Carga útil que viaja en el push y que la app usa para abrir la pantalla. */
+export type DatosAviso = {
+  tipo?: TipoNotificacion;
+  match_id?: string;
+  otro_id?: string;
+  nombre?: string;
+};

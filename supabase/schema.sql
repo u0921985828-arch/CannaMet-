@@ -17,6 +17,8 @@ begin;
 
 create extension if not exists postgis with schema extensions;
 create extension if not exists pg_cron;
+-- pg_net: el cron despierta a la Edge Function que entrega los avisos push.
+create extension if not exists pg_net;
 
 -- ──────────────────────────────── ENUMERADOS ────────────────────────────────
 
@@ -36,6 +38,11 @@ create type public.motivo_reporte as enum (
 create type public.origen_reporte as enum ('usuario', 'automatico');
 create type public.estado_reporte as enum ('pendiente', 'revisado', 'actuado', 'descartado');
 create type public.estado_apelacion as enum ('pendiente', 'aceptada', 'rechazada');
+
+create type public.plataforma_dispositivo as enum ('ios', 'android', 'web');
+create type public.tipo_notificacion as enum (
+  'mensaje', 'match', 'suspension', 'apelacion'
+);
 
 -- ───────────────────────────── CONFIGURACIÓN ─────────────────────────────
 -- Fila única. Los umbrales viven aquí y no en el cuerpo de las funciones:
@@ -279,6 +286,52 @@ alter table public.aceptaciones_legales enable row level security;
 comment on column public.aceptaciones_legales.acepta_datos_salud is
   'OBSOLETO desde 2026-08-2: el perfil ya no recoge datos de salud. Se conserva '
   'como histórico de consentimientos anteriores.';
+
+-- ─────────────────────── APARATOS Y COLA DE AVISOS ───────────────────────
+-- El trigger encola y termina; nadie envía nada dentro de la transacción. Si el
+-- envío viviera ahí, un corte de red en Expo bloquearía el INSERT del mensaje.
+
+create table public.dispositivos (
+  -- El token es la clave: un móvil reinstalado por otra persona lo reutiliza, y
+  -- con clave (usuario, token) el aparato acabaría recibiendo los avisos del
+  -- dueño anterior.
+  token      text primary key check (char_length(token) between 10 and 200),
+  usuario_id uuid not null references auth.users(id) on delete cascade,
+  plataforma public.plataforma_dispositivo not null,
+  creado_en  timestamptz not null default now(),
+  visto_en   timestamptz not null default now()
+);
+
+create index dispositivos_usuario_idx on public.dispositivos (usuario_id);
+
+alter table public.dispositivos enable row level security;
+
+comment on table public.dispositivos is
+  'Un token de Expo por aparato. Solo se escribe vía RPC; el cliente no lee aquí.';
+
+create table public.notificaciones (
+  id         uuid primary key default gen_random_uuid(),
+  usuario_id uuid not null references auth.users(id) on delete cascade,
+  tipo       public.tipo_notificacion not null,
+  titulo     text not null,
+  -- El cuerpo nunca lleva el texto del mensaje: el push se pinta en la pantalla
+  -- de bloqueo, y copiarlo ahí tira por tierra el resto de cuidado con los datos.
+  cuerpo     text not null,
+  datos      jsonb not null default '{}'::jsonb,
+  creado_en  timestamptz not null default now(),
+  -- "cerrado" y no "enviado": una fila también sale de la cola descartada, y
+  -- llamar a eso enviado sería mentir en la única traza que queda del aviso.
+  cerrado_en timestamptz,
+  intentos   int not null default 0,
+  error      text
+);
+
+create index notificaciones_pendientes_idx on public.notificaciones (creado_en asc)
+  where cerrado_en is null;
+create index notificaciones_usuario_idx
+  on public.notificaciones (usuario_id, creado_en desc);
+
+alter table public.notificaciones enable row level security;
 
 -- =============================================================================
 -- FUNCIONES DE APOYO A LAS POLÍTICAS
@@ -1019,6 +1072,286 @@ end;
 $$;
 
 -- =============================================================================
+-- AVISOS PUSH
+-- =============================================================================
+
+create or replace function public.registrar_dispositivo(
+  p_token      text,
+  p_plataforma public.plataforma_dispositivo
+)
+returns void
+language plpgsql security definer
+set search_path = public, pg_temp
+as $$
+declare v_yo uuid := (select auth.uid());
+begin
+  if v_yo is null then
+    raise exception 'no autenticado' using errcode = '28000';
+  end if;
+
+  -- El UPDATE del conflicto cambia también el dueño: el token es del aparato.
+  insert into public.dispositivos (token, usuario_id, plataforma)
+  values (btrim(p_token), v_yo, p_plataforma)
+  on conflict (token) do update set
+    usuario_id = excluded.usuario_id,
+    plataforma = excluded.plataforma,
+    visto_en   = now();
+end;
+$$;
+
+create or replace function public.olvidar_dispositivo(p_token text)
+returns void
+language plpgsql security definer
+set search_path = public, pg_temp
+as $$
+declare v_yo uuid := (select auth.uid());
+begin
+  if v_yo is null then
+    raise exception 'no autenticado' using errcode = '28000';
+  end if;
+  delete from public.dispositivos
+  where token = btrim(p_token) and usuario_id = v_yo;
+end;
+$$;
+
+-- Mensaje nuevo. Respeta el bloqueo y no apila: si ya hay un aviso sin cerrar de
+-- esa conversación, veinte mensajes seguidos siguen siendo un solo push.
+create or replace function public.tg_notificar_mensaje()
+returns trigger
+language plpgsql security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_destino uuid;
+  v_nombre  text;
+begin
+  select case when m.usuario_1_id = new.remitente_id then m.usuario_2_id
+              else m.usuario_1_id end
+    into v_destino
+  from public.matches m
+  where m.id = new.match_id
+    and not exists (
+      select 1 from public.bloqueos b
+      where (b.bloqueador_id = m.usuario_1_id and b.bloqueado_id = m.usuario_2_id)
+         or (b.bloqueador_id = m.usuario_2_id and b.bloqueado_id = m.usuario_1_id)
+    );
+
+  if v_destino is null then return new; end if;
+
+  if exists (
+    select 1 from public.notificaciones
+    where usuario_id = v_destino and tipo = 'mensaje' and cerrado_en is null
+      and datos->>'match_id' = new.match_id::text
+  ) then
+    return new;
+  end if;
+
+  select nombre into v_nombre from public.perfiles where id = new.remitente_id;
+
+  insert into public.notificaciones (usuario_id, tipo, titulo, cuerpo, datos)
+  values (v_destino, 'mensaje', coalesce(v_nombre, 'Alguien'),
+          'Te ha escrito.',
+          jsonb_build_object('match_id', new.match_id,
+                             'otro_id', new.remitente_id,
+                             'nombre', coalesce(v_nombre, 'Alguien')));
+  return new;
+end;
+$$;
+
+create trigger mensajes_notificar
+  after insert on public.mensajes
+  for each row execute function public.tg_notificar_mensaje();
+
+-- Match nuevo: aviso a las dos partes. Ninguna de las dos sabe que el like era
+-- recíproco hasta este momento.
+create or replace function public.tg_notificar_match()
+returns trigger
+language plpgsql security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_n1 text;
+  v_n2 text;
+begin
+  select nombre into v_n1 from public.perfiles where id = new.usuario_1_id;
+  select nombre into v_n2 from public.perfiles where id = new.usuario_2_id;
+
+  insert into public.notificaciones (usuario_id, tipo, titulo, cuerpo, datos)
+  values
+    (new.usuario_1_id, 'match', 'Match',
+     coalesce(v_n2, 'Alguien') || ' también te ha dado like.',
+     jsonb_build_object('match_id', new.id, 'otro_id', new.usuario_2_id,
+                        'nombre', coalesce(v_n2, 'Alguien'))),
+    (new.usuario_2_id, 'match', 'Match',
+     coalesce(v_n1, 'Alguien') || ' también te ha dado like.',
+     jsonb_build_object('match_id', new.id, 'otro_id', new.usuario_1_id,
+                        'nombre', coalesce(v_n1, 'Alguien')));
+  return new;
+end;
+$$;
+
+create trigger matches_notificar
+  after insert on public.matches
+  for each row execute function public.tg_notificar_match();
+
+-- Enterarse de la sanción al intentar entrar es peor que enterarse en el
+-- momento, y además retrasa la apelación.
+create or replace function public.tg_notificar_suspension()
+returns trigger
+language plpgsql security definer
+set search_path = public, pg_temp
+as $$
+begin
+  if new.suspendido_hasta is not null
+     and new.suspendido_hasta > now()
+     and (old.suspendido_hasta is null or old.suspendido_hasta <> new.suspendido_hasta) then
+    insert into public.notificaciones (usuario_id, tipo, titulo, cuerpo, datos)
+    values (new.id, 'suspension', 'Cuenta suspendida',
+            'Abre MATCH para ver el motivo y apelar si no estás de acuerdo.',
+            jsonb_build_object('hasta', new.suspendido_hasta));
+
+  elsif old.suspendido_hasta is not null and new.suspendido_hasta is null then
+    insert into public.notificaciones (usuario_id, tipo, titulo, cuerpo, datos)
+    values (new.id, 'suspension', 'Cuenta restablecida',
+            'Ya puedes volver a usar MATCH.', '{}'::jsonb);
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger perfiles_notificar_suspension
+  after update of suspendido_hasta on public.perfiles
+  for each row execute function public.tg_notificar_suspension();
+
+-- La apelación aceptada ya avisa por la vía de la suspensión levantada. Esto
+-- existe sobre todo para la rechazada, que si no no se comunica nunca.
+create or replace function public.tg_notificar_apelacion()
+returns trigger
+language plpgsql security definer
+set search_path = public, pg_temp
+as $$
+begin
+  if new.estado = 'rechazada' and old.estado = 'pendiente' then
+    insert into public.notificaciones (usuario_id, tipo, titulo, cuerpo, datos)
+    values (new.usuario_id, 'apelacion', 'Apelación revisada',
+            'Hemos revisado tu apelación. Abre MATCH para ver la respuesta.',
+            '{}'::jsonb);
+  end if;
+  return new;
+end;
+$$;
+
+create trigger apelaciones_notificar
+  after update of estado on public.apelaciones
+  for each row execute function public.tg_notificar_apelacion();
+
+-- Reclamar y marcar son dos pasos separados a propósito: entre el envío a Expo
+-- y la confirmación hay una llamada de red que puede fallar, y un aviso perdido
+-- es preferible a uno repetido cada minuto.
+create or replace function public.notificaciones_reclamar(p_limite int default 100)
+returns table (
+  id uuid, usuario_id uuid, tipo public.tipo_notificacion,
+  titulo text, cuerpo text, datos jsonb, tokens text[]
+)
+language plpgsql security definer
+set search_path = public, pg_temp
+as $$
+begin
+  -- Sin ningún aparato dado de alta no hay nada que enviar nunca: esas filas
+  -- salen de la cola aquí en vez de gastar cinco intentos cada una.
+  update public.notificaciones n
+  set cerrado_en = now(), error = 'sin dispositivos'
+  where n.cerrado_en is null
+    and not exists (
+      select 1 from public.dispositivos d where d.usuario_id = n.usuario_id
+    );
+
+  return query
+  with elegidas as (
+    select n.id from public.notificaciones n
+    where n.cerrado_en is null and n.intentos < 5
+    order by n.creado_en
+    limit least(greatest(p_limite, 1), 500)
+    for update skip locked
+  ),
+  marcadas as (
+    update public.notificaciones n
+    set intentos = n.intentos + 1
+    from elegidas e where n.id = e.id
+    returning n.id, n.usuario_id, n.tipo, n.titulo, n.cuerpo, n.datos
+  )
+  select m.id, m.usuario_id, m.tipo, m.titulo, m.cuerpo, m.datos,
+         coalesce(array_agg(d.token) filter (where d.token is not null), '{}')
+  from marcadas m
+  left join public.dispositivos d on d.usuario_id = m.usuario_id
+  group by m.id, m.usuario_id, m.tipo, m.titulo, m.cuerpo, m.datos;
+end;
+$$;
+
+create or replace function public.notificaciones_marcar(
+  p_ids   uuid[],
+  p_error text default null
+)
+returns void
+language sql security definer
+set search_path = public, pg_temp
+as $$
+  update public.notificaciones
+  set cerrado_en = case when p_error is null then now() else cerrado_en end,
+      error      = p_error
+  where id = any(p_ids);
+$$;
+
+-- Expo responde 'DeviceNotRegistered' cuando la app se desinstaló. Conservar ese
+-- token es acumular basura y gastar una petición por aviso para siempre.
+create or replace function public.dispositivos_baja(p_tokens text[])
+returns void
+language sql security definer
+set search_path = public, pg_temp
+as $$
+  delete from public.dispositivos where token = any(p_tokens);
+$$;
+
+-- El cron no envía: despierta a la Edge Function, que es quien habla con Expo.
+-- La URL y la clave viven en Vault, no en el cuerpo de la función.
+create or replace function public.notificaciones_despachar()
+returns void
+language plpgsql security definer
+set search_path = public, net, vault, pg_temp
+as $$
+declare
+  v_url   text;
+  v_clave text;
+begin
+  if not exists (
+    select 1 from public.notificaciones where cerrado_en is null and intentos < 5
+  ) then
+    return;
+  end if;
+
+  select decrypted_secret into v_url
+  from vault.decrypted_secrets where name = 'url_funcion_notificar';
+  select decrypted_secret into v_clave
+  from vault.decrypted_secrets where name = 'clave_service_role';
+
+  if v_url is null or v_clave is null then
+    raise warning 'notificaciones: faltan los secretos en Vault, no se despacha';
+    return;
+  end if;
+
+  perform net.http_post(
+    url     := v_url,
+    headers := jsonb_build_object(
+                 'Content-Type', 'application/json',
+                 'Authorization', 'Bearer ' || v_clave),
+    body    := '{}'::jsonb,
+    timeout_milliseconds := 8000
+  );
+end;
+$$;
+
+-- =============================================================================
 -- DERECHOS DE LA PERSONA USUARIA (RGPD)
 -- =============================================================================
 
@@ -1127,6 +1460,18 @@ as $$
       select coalesce(jsonb_agg(jsonb_build_object(
         'texto', texto, 'estado', estado, 'fecha', creado_en)), '[]'::jsonb)
       from public.apelaciones where usuario_id = (select auth.uid())
+    ),
+    -- El token del aparato no se exporta: identifica al móvil, no informa de nada.
+    'dispositivos', (
+      select coalesce(jsonb_agg(jsonb_build_object(
+        'plataforma', plataforma, 'alta', creado_en, 'visto', visto_en)), '[]'::jsonb)
+      from public.dispositivos where usuario_id = (select auth.uid())
+    ),
+    'notificaciones_recibidas', (
+      select coalesce(jsonb_agg(jsonb_build_object(
+        'tipo', tipo, 'titulo', titulo, 'fecha', creado_en)
+        order by creado_en), '[]'::jsonb)
+      from public.notificaciones where usuario_id = (select auth.uid())
     )
   );
 $$;
@@ -1153,6 +1498,11 @@ begin
   where estado <> 'pendiente' and resuelta_en is not null
     and resuelta_en < now() - make_interval(days => v_dias);
 
+  -- Un aviso caducado no le sirve ya a nadie. 30 días es margen de sobra para
+  -- diagnosticar un fallo de entrega; más sería acumular por acumular.
+  delete from public.notificaciones
+  where creado_en < now() - interval '30 days';
+
   return v_borrados;
 end;
 $$;
@@ -1167,10 +1517,15 @@ $$;
 revoke all on public.perfiles, public.swipes, public.matches, public.mensajes,
               public.bloqueos, public.reportes, public.apelaciones,
               public.aceptaciones_legales, public.moderadores,
-              public.config_moderacion
+              public.config_moderacion, public.dispositivos,
+              public.notificaciones
   from anon;
 
 revoke all on public.moderadores, public.config_moderacion from public, authenticated;
+
+-- Ni lectura en aparatos ni en la cola: el cliente solo tiene dos RPC. La RLS
+-- sin políticas ya lo impide; el GRANT lo impide antes.
+revoke all on public.dispositivos, public.notificaciones from authenticated;
 
 -- `coordenadas` y `suspendido_por` fuera del SELECT a nivel de columna: la RLS
 -- es por fila, así que sin esto un match leería el punto exacto de la otra
@@ -1199,8 +1554,23 @@ revoke execute on function
   public.recalcular_edades(),
   public.purgar_reportes_antiguos(),
   public.tg_senal_bloqueos_repetidos(),
-  public.tg_set_actualizado_en()
+  public.tg_set_actualizado_en(),
+  public.tg_notificar_mensaje(),
+  public.tg_notificar_match(),
+  public.tg_notificar_suspension(),
+  public.tg_notificar_apelacion(),
+  public.notificaciones_despachar(),
+  public.notificaciones_reclamar(int),
+  public.notificaciones_marcar(uuid[], text),
+  public.dispositivos_baja(text[])
   from public, anon, authenticated;
+
+-- Solo la Edge Function, que entra con service_role, drena la cola.
+grant execute on function
+  public.notificaciones_reclamar(int),
+  public.notificaciones_marcar(uuid[], text),
+  public.dispositivos_baja(text[])
+  to service_role;
 
 -- RPC de aplicación: solo con sesión.
 revoke execute on function
@@ -1228,7 +1598,9 @@ revoke execute on function
   public.consentimiento_al_dia(),
   public.registrar_aceptacion(),
   public.borrar_mi_cuenta(),
-  public.exportar_mis_datos()
+  public.exportar_mis_datos(),
+  public.registrar_dispositivo(text, public.plataforma_dispositivo),
+  public.olvidar_dispositivo(text)
   from public, anon;
 
 grant execute on function
@@ -1256,7 +1628,9 @@ grant execute on function
   public.consentimiento_al_dia(),
   public.registrar_aceptacion(),
   public.borrar_mi_cuenta(),
-  public.exportar_mis_datos()
+  public.exportar_mis_datos(),
+  public.registrar_dispositivo(text, public.plataforma_dispositivo),
+  public.olvidar_dispositivo(text)
   to authenticated;
 
 -- =============================================================================
@@ -1272,13 +1646,26 @@ select cron.schedule('recalcular-edades', '30 3 * * *',
 select cron.schedule('purga-reportes-antiguos', '0 4 * * *',
   $CRON$select public.purgar_reportes_antiguos();$CRON$);
 
+-- Cada minuto: si no hay nada pendiente la función sale sin hacer red.
+select cron.schedule('despachar-notificaciones', '* * * * *',
+  $CRON$select public.notificaciones_despachar();$CRON$);
+
 commit;
 
 -- =============================================================================
--- PASO MANUAL TRAS EL DESPLIEGUE
+-- PASOS MANUALES TRAS EL DESPLIEGUE
 -- =============================================================================
--- La cola de moderación no la lee nadie hasta que exista al menos un moderador:
+-- 1. La cola de moderación no la lee nadie hasta que exista al menos un moderador:
 --
---   insert into public.moderadores (usuario_id, nota)
---   values ('<uuid de auth.users>', 'quién y por qué');
+--      insert into public.moderadores (usuario_id, nota)
+--      values ('<uuid de auth.users>', 'quién y por qué');
+--
+-- 2. Los avisos push no salen hasta que Vault tenga los dos secretos y la Edge
+--    Function esté desplegada:
+--
+--      select vault.create_secret(
+--        'https://<ref>.supabase.co/functions/v1/notificar', 'url_funcion_notificar');
+--      select vault.create_secret('<clave service_role>', 'clave_service_role');
+--
+--      supabase functions deploy notificar
 -- =============================================================================

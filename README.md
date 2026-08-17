@@ -48,6 +48,7 @@ src/
     api.ts                  ÚNICO punto de contacto con el backend
     log.ts                  logs estructurados `[ámbito] evento { ms }`
     formato.ts              distancias y fechas
+    notificaciones.ts       permiso, token de Expo y alta/baja del aparato
   types/
     database.ts             generado (npm run tipos)
     modelos.ts              tipos de dominio + etiquetas de UI
@@ -59,6 +60,7 @@ src/
 supabase/
   schema.sql                fuente de verdad: reconstruye la base entera
   migrations/               historial de decisiones, no replay garantizado
+  functions/notificar/      Edge Function que entrega los avisos a Expo
 ```
 
 La regla que sostiene todo: **las pantallas no llaman a Supabase**. Llaman a hooks,
@@ -189,6 +191,49 @@ puede ser una vía de escape de la moderación.
 
 ---
 
+## Avisos push
+
+El disparador escribe en `notificaciones` y termina. Nadie envía nada dentro de
+la transacción: si el envío viviera ahí, un corte de red en Expo bloquearía el
+`INSERT` del mensaje y la app dejaría de funcionar por culpa del aviso.
+
+```
+mensaje/match/suspensión/apelación
+        │  (trigger)
+        ▼
+public.notificaciones            cola, una fila por aviso
+        │
+        │  pg_cron cada minuto → notificaciones_despachar()
+        │  (solo hace red si hay algo pendiente)
+        ▼
+pg_net POST → Edge Function `notificar`
+        │  reclama en bloque, habla con Expo, cierra las filas
+        ▼
+Expo Push → APNs / FCM
+```
+
+Cuatro decisiones que explican el resto:
+
+- **El cuerpo del aviso nunca lleva el texto del mensaje.** «Ana: te ha
+  escrito», no lo que ha escrito. El push se pinta en la pantalla de bloqueo.
+- **El token es la clave primaria de `dispositivos`.** Un móvil reinstalado por
+  otra persona reutiliza el token; con clave `(usuario, token)` ese aparato
+  acabaría recibiendo los avisos de su dueño anterior.
+- **Un aviso por conversación sin cerrar.** Veinte mensajes seguidos son un solo
+  push mientras no se haya entregado el primero.
+- **Reclamar y cerrar son dos pasos.** Entre medias hay una llamada de red que
+  puede fallar; un aviso perdido es mejor que uno repetido cada minuto.
+
+El bloqueo se respeta en el propio trigger, y al cerrar sesión el aparato se da
+de baja **antes** del `signOut`: después el token de acceso ya no vale y el móvil
+seguiría recibiendo los avisos de una cuenta cerrada.
+
+Sin los secretos de Vault o sin la Edge Function desplegada la cola simplemente
+se llena y nada revienta. Sin `extra.eas.projectId` en `app.json` la app no pide
+tokens y lo dice en el log: los avisos son un extra, no un requisito.
+
+---
+
 ## Umbrales
 
 Están en `public.config_moderacion`, fila única editable con `service_role` desde
@@ -264,8 +309,9 @@ pero los gestos, el teclado y los WebSockets de Realtime necesitan un móvil.
 
 - No hay fotos en el modelo. Las tarjetas son tipográficas por diseño, pero si
   quieres imágenes hace falta Supabase Storage y una política de acceso aparte.
-- **No hay notificaciones push.** Una suspensión o una apelación resuelta solo se
-  ven al abrir la app. Requiere `expo-notifications` y envío desde el servidor.
+- **Los avisos push no se han probado en un aparato real.** El recorrido de base
+  de datos está verificado contra Postgres; lo que falta es un `eas build` con
+  `extra.eas.projectId` puesto y las credenciales de APNs/FCM subidas.
 - **Los textos legales son borradores.** Están estructurados y versionados, pero
   necesitan revisión de un abogado.
 - **La edad sigue siendo autodeclarada.** Ahora se pide fecha de nacimiento y el

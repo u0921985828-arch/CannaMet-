@@ -26,6 +26,13 @@
     },
     "plugins": [
       [
+        "expo-notifications",
+        {
+          "color": "#D99B3C",
+          "defaultChannel": "avisos"
+        }
+      ],
+      [
         "expo-location",
         {
           "locationWhenInUsePermission": "MATCH usa tu ubicación para mostrarte a qué distancia están otras personas. Tus coordenadas nunca se comparten."

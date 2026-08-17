@@ -242,6 +242,69 @@ export type Database = {
         };
         Relationships: [];
       };
+      dispositivos: {
+        Row: {
+          creado_en: string;
+          plataforma: Database['public']['Enums']['plataforma_dispositivo'];
+          token: string;
+          usuario_id: string;
+          visto_en: string;
+        };
+        Insert: {
+          creado_en?: string;
+          plataforma: Database['public']['Enums']['plataforma_dispositivo'];
+          token: string;
+          usuario_id: string;
+          visto_en?: string;
+        };
+        Update: {
+          creado_en?: string;
+          plataforma?: Database['public']['Enums']['plataforma_dispositivo'];
+          token?: string;
+          usuario_id?: string;
+          visto_en?: string;
+        };
+        Relationships: [];
+      };
+      notificaciones: {
+        Row: {
+          cerrado_en: string | null;
+          creado_en: string;
+          cuerpo: string;
+          datos: Json;
+          error: string | null;
+          id: string;
+          intentos: number;
+          tipo: Database['public']['Enums']['tipo_notificacion'];
+          titulo: string;
+          usuario_id: string;
+        };
+        Insert: {
+          cerrado_en?: string | null;
+          creado_en?: string;
+          cuerpo: string;
+          datos?: Json;
+          error?: string | null;
+          id?: string;
+          intentos?: number;
+          tipo: Database['public']['Enums']['tipo_notificacion'];
+          titulo: string;
+          usuario_id: string;
+        };
+        Update: {
+          cerrado_en?: string | null;
+          creado_en?: string;
+          cuerpo?: string;
+          datos?: Json;
+          error?: string | null;
+          id?: string;
+          intentos?: number;
+          tipo?: Database['public']['Enums']['tipo_notificacion'];
+          titulo?: string;
+          usuario_id?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -377,6 +440,14 @@ export type Database = {
           match_id: string | null;
         }[];
       };
+      registrar_dispositivo: {
+        Args: {
+          p_plataforma: Database['public']['Enums']['plataforma_dispositivo'];
+          p_token: string;
+        };
+        Returns: undefined;
+      };
+      olvidar_dispositivo: { Args: { p_token: string }; Returns: undefined };
     };
     Enums: {
       accion_swipe: 'like' | 'dislike';
@@ -393,6 +464,8 @@ export type Database = {
         | 'otro';
       ambiente_preferido:
         'casa' | 'monte' | 'musica' | 'quedadas' | 'crear' | 'prefiero_no_decir';
+      plataforma_dispositivo: 'ios' | 'android' | 'web';
+      tipo_notificacion: 'mensaje' | 'match' | 'suspension' | 'apelacion';
     };
     CompositeTypes: {
       [_ in never]: never;

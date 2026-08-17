@@ -114,14 +114,17 @@ consentimiento explícito separado.
   citas, sin adornos: mentir en el cuestionario es motivo de retirada.
 - **Etiquetas de privacidad (Apple) / Data Safety (Google)**: declarar ubicación
   aproximada, identificadores y contenido de usuario. **No** hay datos de salud.
+  El token de push cuenta como identificador de aparato: va en esa casilla.
 - **Justificación del permiso de ubicación**: ya está el texto en `app.json`.
 - Capturas sin iconografía cannábica.
 
 ### Técnico pendiente
 
-- **Notificaciones push.** Hoy una suspensión o una apelación resuelta solo se
-  ven al abrir la app. No bloquea la publicación, pero para un producto real hace
-  falta `expo-notifications` y envío desde servidor.
+- **Notificaciones push: hechas, sin probar en aparato.** Cola en base de datos,
+  Edge Function y cliente están escritos y el recorrido de servidor está
+  verificado contra Postgres. Falta lo que solo se puede hacer con una build
+  real: poner `extra.eas.projectId` en `app.json`, subir las credenciales de
+  APNs y FCM a EAS, y comprobar la entrega en un móvil.
 - **Probar en dispositivo.** El backend está verificado a fondo; los gestos, el
   teclado y los WebSockets de Realtime no.
 - **Build de producción** con EAS: `eas build --platform ios --profile production`.
