@@ -194,6 +194,20 @@ puede ser una vía de escape de la moderación.
 
 ---
 
+## Compilar
+
+`.github/workflows/build-apk.yml` compila el APK en un runner de GitHub y lo
+publica en Releases. Este proyecto no versiona `android/`: lo regenera
+`expo prebuild` en cada build.
+
+Antes de tocar CI conviene ejecutar `npx expo export --platform android`, que
+pasa Metro entero sin necesitar el SDK de Android. Los dos primeros builds
+cayeron empaquetando el JavaScript y ese comando los habría cazado en local.
+
+Detalles y firma para Play en `docs/BUILD.md`.
+
+---
+
 ## Textos legales
 
 `src/legal/textos.ts` es la única fuente. La app los enseña desde ahí y
@@ -329,7 +343,9 @@ pero los gestos, el teclado y los WebSockets de Realtime necesitan un móvil.
 
 - No hay fotos en el modelo. Las tarjetas son tipográficas por diseño, pero si
   quieres imágenes hace falta Supabase Storage y una política de acceso aparte.
-- **Los avisos push no se han probado en un aparato real.** El recorrido de base
+- **Los avisos push no se han probado en un aparato real.** Falta subir la clave
+  de FCM V1 a EAS o meter `google-services.json`; el APK actual instala y
+  funciona, pero no recibe avisos. El recorrido de base
   de datos está verificado contra Postgres; lo que falta es un `eas build` con
   `extra.eas.projectId` puesto y las credenciales de APNs/FCM subidas.
 - **Los textos legales son borradores.** Están estructurados, versionados y ya

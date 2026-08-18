@@ -1,5 +1,17 @@
 # Sacar el APK
 
+## Ya hay uno compilado
+
+Cada push a la rama dispara `.github/workflows/build-apk.yml`, que compila en un
+runner de GitHub y publica el resultado:
+
+- **Descarga directa:** https://github.com/u0921985828-arch/CannaMet-/releases/download/apk/MATCH.apk
+- También queda en **Actions ▸ el run ▸ Artifacts**.
+
+Va firmado con la clave de depuración: sirve para instalar y probar, no para
+publicar en Play. Para instalarlo hay que permitir «Instalar apps desconocidas»
+en el móvil, o `adb install -r MATCH.apk` por USB.
+
 El `.env` no se sube al repositorio, así que **una build sin `env` en `eas.json`
 arranca y muere en la primera pantalla** con «Faltan EXPO_PUBLIC_SUPABASE_URL o
 EXPO_PUBLIC_SUPABASE_ANON_KEY». Los tres perfiles ya llevan las dos variables.
@@ -37,9 +49,18 @@ perfil.
 2. En iOS, EAS genera la clave de APNs solo si le dejas.
 3. Sin esto la app funciona igual; simplemente no llega ningún aviso.
 
-## Por qué no se construye aquí
+## Por qué la build va por CI y no en local
 
-El entorno de esta sesión no llega a `dl.google.com` ni a `expo.dev`: la
-política de red del contenedor responde 403 a los dos. Sin el SDK de Android no
-hay compilación local, y sin `expo.dev` no hay build en la nube. La build sale
-de tu máquina, no de aquí.
+El entorno de la sesión de Claude no llega a `dl.google.com` ni a `expo.dev`: la
+política de red responde 403 a los dos, así que allí no hay SDK de Android ni
+build en la nube de EAS. Un runner de Actions sí llega, y de ahí sale el APK.
+
+Lo que sí se puede comprobar sin el SDK, y conviene hacer antes de gastar una
+vuelta de CI de cinco minutos:
+
+```bash
+npx expo export --platform android
+```
+
+Eso ejecuta Metro entero. Los dos primeros intentos de build murieron ahí y ese
+comando los habría cazado en local.

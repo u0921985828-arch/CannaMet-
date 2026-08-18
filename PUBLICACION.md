@@ -131,7 +131,8 @@ consentimiento explícito separado.
   real: poner `extra.eas.projectId` en `app.json`, subir las credenciales de
   APNs y FCM a EAS, y comprobar la entrega en un móvil.
 - **Probar en dispositivo.** El backend está verificado a fondo; los gestos, el
-  teclado y los WebSockets de Realtime no.
+  teclado y los WebSockets de Realtime no. Ya hay APK compilado y firmado con la
+  clave de depuración en la pestaña Releases del repositorio, etiqueta `apk`.
 - **Build de producción** con EAS. Pasos exactos en `docs/BUILD.md`. El APK
   instalable sale del perfil `preview`; Play exige el AAB del perfil
   `production`.
