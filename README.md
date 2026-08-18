@@ -57,6 +57,9 @@ src/
   componentes/              presentacionales, sin llamadas de red
   pantallas/                composición
   navegacion/               stack + tabs, conmutación condicional
+docs/                       páginas legales públicas (GitHub Pages) + art. 30
+scripts/
+  generar-legales.mjs       docs/ se genera desde src/legal/textos.ts
 supabase/
   schema.sql                fuente de verdad: reconstruye la base entera
   migrations/               historial de decisiones, no replay garantizado
@@ -191,6 +194,23 @@ puede ser una vía de escape de la moderación.
 
 ---
 
+## Textos legales
+
+`src/legal/textos.ts` es la única fuente. La app los enseña desde ahí y
+`npm run legales` genera con ellos `docs/`, que GitHub Pages publica sin
+configurar nada: las tiendas exigen un enlace accesible sin instalar la app.
+
+Duplicar los textos a mano en una web garantiza que un día dejen de coincidir
+con lo que la aplicación enseña y con la versión que la gente aceptó.
+
+El script termina con código 1 mientras queden corchetes sin rellenar en
+`DATOS_RESPONSABLE`: sin esos datos la política incumple el art. 13 del RGPD.
+
+`docs/registro-actividades.md` es el registro del art. 30. No se publica: se
+guarda y se enseña a la autoridad de control si lo pide.
+
+---
+
 ## Avisos push
 
 El disparador escribe en `notificaciones` y termina. Nadie envía nada dentro de
@@ -312,8 +332,9 @@ pero los gestos, el teclado y los WebSockets de Realtime necesitan un móvil.
 - **Los avisos push no se han probado en un aparato real.** El recorrido de base
   de datos está verificado contra Postgres; lo que falta es un `eas build` con
   `extra.eas.projectId` puesto y las credenciales de APNs/FCM subidas.
-- **Los textos legales son borradores.** Están estructurados y versionados, pero
-  necesitan revisión de un abogado.
+- **Los textos legales son borradores.** Están estructurados, versionados y ya
+  se publican solos en `docs/`, pero les faltan los datos del responsable y la
+  revisión de un abogado.
 - **La edad sigue siendo autodeclarada.** Ahora se pide fecha de nacimiento y el
   corte de 18 se comprueba en servidor, pero un menor decidido pone otra fecha.
   Sin verificación documental no hay más.

@@ -88,15 +88,20 @@ consentimiento explícito separado.
 2. **Revisión por abogado** de ambos textos. Son borradores estructurados, no
    documentos válidos. Pregunta expresamente por el art. 9 (dato de salud).
 
-3. **Hospedar privacidad y términos en una URL pública.** Las tiendas piden un
-   enlace accesible sin instalar la app. Los textos están en `textos.ts`; súbelos
-   también a una web.
+3. **Hospedar privacidad y términos en una URL pública.** Ya no hay que copiar
+   nada: `npm run legales` genera `docs/` desde `textos.ts`. Queda encender
+   GitHub Pages (Settings → Pages → rama, carpeta `/docs`) y poner las dos URL
+   resultantes en `DATOS_RESPONSABLE`. Mientras queden corchetes sin rellenar el
+   script termina con error a propósito.
 
 4. **Firmar el DPA con Supabase** (encargado del tratamiento). Está en el
    dashboard, en la configuración de la organización.
 
-5. **Registro de actividades de tratamiento** (art. 30 RGPD). Obligatorio salvo
-   excepciones que probablemente no te aplican al tratar datos de salud.
+5. **Registro de actividades de tratamiento** (art. 30 RGPD). Hay un borrador
+   completo en `docs/registro-actividades.md` con las siete actividades, las
+   bases jurídicas, los plazos y los encargados. Faltan los corchetes y el
+   repaso del abogado. Ojo al apartado 5: el token de push viaja a Expo y de
+   ahí a APNs/FCM, y esa vía hay que confirmarla.
 
 6. **Dar de alta al menos un moderador**, o la cola no la lee nadie:
 

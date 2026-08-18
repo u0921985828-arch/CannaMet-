@@ -9,6 +9,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "tipos": "npx supabase gen types typescript --project-id weuzugsbroqgqmecixic > src/types/database.ts",
+    "legales": "node scripts/generar-legales.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",

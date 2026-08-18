@@ -19,6 +19,11 @@ module.exports = [
     ],
   },
   {
+    // Scripts de build: corren en Node, no en el móvil.
+    files: ['scripts/**/*.mjs'],
+    languageOptions: { globals: { console: 'readonly', process: 'readonly' } },
+  },
+  {
     files: ['**/*.{ts,tsx}'],
     languageOptions: {
       parserOptions: {
