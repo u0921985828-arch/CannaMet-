@@ -40,12 +40,15 @@ const TEMA: Theme = {
 /** Sin librería de iconos: la pestaña activa se marca con una regla ámbar. */
 function IconoTab({ etiqueta, activo }: { etiqueta: string; activo: boolean }) {
   return (
-    <View className="items-center gap-1.5 pt-1">
+    <View className="w-20 items-center gap-1.5 pt-1">
       <View className={`h-[2px] w-6 ${activo ? 'bg-ambar' : 'bg-transparent'}`} />
+      {/* 10px con 1,5px de tracking se comia la ultima letra en pantallas
+          estrechas. Ancho fijo y una linea: la etiqueta cabe entera o no cabe. */}
       <Text
-        className={`font-mono text-[10px] uppercase tracking-[1.5px] ${
+        className={`font-mono text-etiqueta uppercase ${
           activo ? 'text-ambar' : 'text-apagado'
         }`}
+        numberOfLines={1}
       >
         {etiqueta}
       </Text>
@@ -65,8 +68,9 @@ function NavegadorTabs() {
           backgroundColor: C.base,
           borderTopColor: C.borde,
           borderTopWidth: 1,
-          height: 68,
+          height: 76,
           paddingTop: 6,
+          paddingBottom: 8,
         },
       }}
     >
@@ -101,7 +105,7 @@ function NavegadorTabs() {
           name="Moderacion"
           component={ModeracionScreen}
           options={{
-            tabBarIcon: ({ focused }) => <IconoTab etiqueta="Mod" activo={focused} />,
+            tabBarIcon: ({ focused }) => <IconoTab etiqueta="Moderar" activo={focused} />,
             tabBarAccessibilityLabel: 'Panel de moderación',
           }}
         />

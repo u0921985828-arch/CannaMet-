@@ -179,7 +179,7 @@ export function ChatScreen({ route, navigation }: Props) {
             accessibilityState={{ disabled: !puedeEnviar }}
             style={({ pressed }) => ({ opacity: !puedeEnviar ? 0.35 : pressed ? 0.7 : 1 })}
           >
-            <View className="h-12 items-center justify-center rounded-pieza bg-ambar px-5">
+            <View className="min-h-12 items-center justify-center rounded-pieza bg-ambar px-5 py-3">
               <Text className="font-sansFuerte text-base text-dato">Enviar</Text>
             </View>
           </Pressable>

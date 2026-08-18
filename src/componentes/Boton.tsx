@@ -40,13 +40,20 @@ export function Boton({
       accessibilityState={{ disabled: inactivo, busy: cargando }}
       style={({ pressed }) => ({ opacity: inactivo ? 0.45 : pressed ? 0.75 : 1 })}
     >
+      {/* `min-h-14` y no `h-14`: con altura fija, un titulo de dos lineas se
+          recortaba por abajo en vez de hacer crecer el boton. */}
       <View
-        className={`h-14 flex-row items-center justify-center rounded-pieza border px-6 ${estilo.caja} ${ancho ? 'w-full' : ''}`}
+        className={`min-h-14 flex-row items-center justify-center rounded-pieza border px-5 py-3 ${estilo.caja} ${ancho ? 'w-full' : ''}`}
       >
         {cargando ? (
           <ActivityIndicator color={variante === 'primario' ? C.base : C.ambar} />
         ) : (
-          <Text className={`font-sansFuerte text-cuerpo ${estilo.texto}`}>{titulo}</Text>
+          <Text
+            className={`shrink text-center font-sansFuerte text-cuerpo ${estilo.texto}`}
+            numberOfLines={2}
+          >
+            {titulo}
+          </Text>
         )}
       </View>
     </Pressable>

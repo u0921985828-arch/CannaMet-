@@ -32,15 +32,17 @@ export function Opciones<T extends string>({
               accessibilityRole="radio"
               accessibilityState={{ selected: activa }}
               accessibilityLabel={op.etiqueta}
-              style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+              // `flexShrink`: sin esto una etiqueta larga genera una pildora mas
+              // ancha que la fila y el texto se corta por el borde derecho.
+              style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1, flexShrink: 1 })}
             >
               <View
-                className={`rounded-pastilla border px-4 py-3 ${
+                className={`min-h-12 justify-center rounded-pastilla border px-4 py-3 ${
                   activa ? 'border-ambar bg-ambarSuave' : 'border-borde bg-superficie'
                 }`}
               >
                 <Text
-                  className={`font-sansMedia text-dato ${
+                  className={`font-sansMedia text-cuerpo ${
                     activa ? 'text-ambar' : 'text-tinta2'
                   }`}
                 >

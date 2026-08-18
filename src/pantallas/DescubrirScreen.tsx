@@ -33,7 +33,7 @@ function BotonAccion({
       style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1, flex: 1 })}
     >
       <View
-        className={`h-16 items-center justify-center rounded-pieza border ${
+        className={`min-h-16 items-center justify-center rounded-pieza border px-3 py-4 ${
           esLike ? 'border-ambar bg-ambarSuave' : 'border-borde2 bg-superficie'
         }`}
       >
@@ -41,6 +41,9 @@ function BotonAccion({
           className={`font-mono text-cuerpo tracking-[4px] ${
             esLike ? 'text-ambar' : 'text-tinta2'
           }`}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.8}
         >
           {texto}
         </Text>

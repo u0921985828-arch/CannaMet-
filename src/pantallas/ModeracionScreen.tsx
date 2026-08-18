@@ -92,7 +92,7 @@ function Caso({
           accessibilityLabel="Resolver caso"
           style={({ pressed }) => ({ opacity: ocupado ? 0.4 : pressed ? 0.7 : 1 })}
         >
-          <View className="mt-5 h-12 items-center justify-center rounded-pieza border border-borde2">
+          <View className="mt-5 min-h-12 items-center justify-center rounded-pieza border border-borde2 px-4 py-3">
             <Text className="font-sansFuerte text-dato text-tinta">Resolver</Text>
           </View>
         </Pressable>
@@ -140,7 +140,7 @@ function Apelacion({
 
         {apelacion.puedo_resolver ? (
           <Pressable onPress={preguntar} accessibilityRole="button">
-            <View className="mt-5 h-12 items-center justify-center rounded-pieza border border-borde2">
+            <View className="mt-5 min-h-12 items-center justify-center rounded-pieza border border-borde2 px-4 py-3">
               <Text className="font-sansFuerte text-dato text-tinta">Resolver</Text>
             </View>
           </Pressable>

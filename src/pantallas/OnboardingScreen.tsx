@@ -14,6 +14,7 @@ import { Campo } from '@/componentes/Campo';
 import { aIso, CampoFechaNacimiento } from '@/componentes/CampoFechaNacimiento';
 import { AvisoError } from '@/componentes/Estados';
 import { Opciones } from '@/componentes/Opciones';
+import { Paso } from '@/componentes/Paso';
 import { usePerfil, validarPerfil, type ErroresPerfil } from '@/hooks/usePerfil';
 import { useUbicacion } from '@/hooks/useUbicacion';
 import { cerrarSesion } from '@/lib/api';
@@ -21,7 +22,23 @@ import { AMBIENTES, type AmbientePreferido } from '@/types/modelos';
 
 const MAX_BIO = 500;
 
+/**
+ * Un dato por pantalla. El formulario entero de golpe pedía nombre, fecha,
+ * ambiente, biografía y ubicación en la misma vista: se lee como un trámite y
+ * la mitad de la gente lo abandona en la primera pantalla.
+ */
+const PASOS = ['nombre', 'fecha', 'ambiente', 'bio', 'ubicacion'] as const;
+type ClavePaso = (typeof PASOS)[number];
+
+/** Qué campo valida cada paso. La ubicación y el ambiente no pueden fallar. */
+const CAMPO_DEL_PASO: Partial<Record<ClavePaso, keyof ErroresPerfil>> = {
+  nombre: 'nombre',
+  fecha: 'fecha',
+  bio: 'bio',
+};
+
 export function OnboardingScreen() {
+  const [indice, setIndice] = useState(0);
   const [nombre, setNombre] = useState('');
   const [fecha, setFecha] = useState({ dia: '', mes: '', anio: '' });
   const [bio, setBio] = useState('');
@@ -31,15 +48,24 @@ export function OnboardingScreen() {
   const { guardar, guardando, error } = usePerfil();
   const ubicacion = useUbicacion();
 
-  const pedirUbicacion = async () => {
-    await ubicacion.solicitar();
-  };
+  const paso = PASOS[indice] as ClavePaso;
+  const ultimo = indice === PASOS.length - 1;
 
-  const continuar = async () => {
+  const guardarPerfilCompleto = async () => {
     const fechaIso = aIso(fecha.dia, fecha.mes, fecha.anio);
-    const nuevos = validarPerfil(nombre, fechaIso, bio);
-    setErrores(nuevos);
-    if (Object.keys(nuevos).length > 0) return;
+    const todos = validarPerfil(nombre, fechaIso, bio);
+
+    // Si algo se coló, vuelve al paso que lo pide en vez de fallar sin más.
+    const primerFallo = PASOS.find((p) => {
+      const campo = CAMPO_DEL_PASO[p];
+      return campo && todos[campo];
+    });
+
+    if (primerFallo) {
+      setErrores(todos);
+      setIndice(PASOS.indexOf(primerFallo));
+      return;
+    }
 
     await guardar({
       nombre: nombre.trim(),
@@ -50,6 +76,31 @@ export function OnboardingScreen() {
       lng: ubicacion.coords?.lng ?? null,
     });
     // Al fijar el perfil, RootNavigator conmuta solo a las pestañas.
+  };
+
+  const avanzar = () => {
+    const campo = CAMPO_DEL_PASO[paso];
+
+    if (campo) {
+      // `validarPerfil` valida el perfil entero; en cada paso solo importa su
+      // campo, porque los demás todavía están a medio rellenar.
+      const fallo = validarPerfil(nombre, aIso(fecha.dia, fecha.mes, fecha.anio), bio)[
+        campo
+      ];
+      if (fallo) {
+        setErrores({ [campo]: fallo });
+        return;
+      }
+    }
+
+    setErrores({});
+    if (ultimo) void guardarPerfilCompleto();
+    else setIndice((i) => i + 1);
+  };
+
+  const retroceder = () => {
+    setErrores({});
+    setIndice((i) => Math.max(0, i - 1));
   };
 
   const textoUbicacion = (): string => {
@@ -74,114 +125,156 @@ export function OnboardingScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
-          contentContainerClassName="px-gutter pb-12 pt-6"
+          contentContainerClassName="grow px-gutter pb-8 pt-6"
           keyboardShouldPersistTaps="handled"
         >
-          <View className="mb-8">
-            <View className="h-[3px] w-14 bg-ambar" />
-            <Text className="mt-6 font-display text-titulo text-tinta">Tu perfil</Text>
-            <Text className="mt-2 font-sans text-cuerpo text-apagado">
-              Cuatro datos y ya estás dentro. Puedes cambiarlos cuando quieras.
-            </Text>
-          </View>
-
           {error ? <AvisoError mensaje={error} /> : null}
 
-          <Campo
-            etiqueta="Nombre"
-            value={nombre}
-            onChangeText={setNombre}
-            placeholder="Cómo quieres que te llamen"
-            error={errores.nombre}
-            maxLength={40}
-            editable={!guardando}
-          />
-
-          <CampoFechaNacimiento
-            dia={fecha.dia}
-            mes={fecha.mes}
-            anio={fecha.anio}
-            onCambio={(parte, valor) => setFecha((f) => ({ ...f, [parte]: valor }))}
-            error={errores.fecha}
-            editable={!guardando}
-          />
-
-          <Opciones
-            etiqueta="Cómo te gusta quedar"
-            opciones={AMBIENTES}
-            seleccion={ambiente}
-            onSeleccion={setAmbiente}
-          />
-
-          <Campo
-            etiqueta="Sobre ti"
-            value={bio}
-            onChangeText={setBio}
-            placeholder="Opcional. Qué te interesa, qué buscas."
-            multiline
-            numberOfLines={4}
-            maxLength={MAX_BIO}
-            error={errores.bio}
-            contador={{ actual: bio.length, maximo: MAX_BIO }}
-            editable={!guardando}
-            style={{ minHeight: 110, textAlignVertical: 'top' }}
-          />
-
-          {/* Ubicación: bloque aparte porque es lo único que sale del dispositivo */}
-          <View className="mb-6 rounded-pieza border border-borde bg-superficie p-5">
-            <Text className="font-mono text-etiqueta uppercase text-apagado">
-              Ubicación
-            </Text>
-            <Text className="mt-2 font-sans text-cuerpo text-tinta2">
-              Sirve para ordenar los perfiles por cercanía. Otras personas solo ven la
-              distancia en kilómetros, nunca el punto.
-            </Text>
-
-            <View className="mt-4 flex-row items-center gap-3">
-              <View
-                className={`h-2 w-2 rounded-pastilla ${
-                  ubicacion.estado === 'concedida' ? 'bg-salvia' : 'bg-borde2'
-                }`}
+          {paso === 'nombre' ? (
+            <Paso
+              indice={indice}
+              total={PASOS.length}
+              titulo="¿Cómo te llamas?"
+              descripcion="El nombre con el que te verá el resto. No tiene que ser el del DNI."
+            >
+              <Campo
+                etiqueta="Nombre"
+                value={nombre}
+                onChangeText={setNombre}
+                placeholder="Cómo quieres que te llamen"
+                error={errores.nombre}
+                maxLength={40}
+                editable={!guardando}
+                autoFocus
+                autoCapitalize="words"
+                returnKeyType="next"
+                onSubmitEditing={avanzar}
               />
-              <Text className="flex-1 font-monoMedia text-dato text-tinta">
-                {textoUbicacion()}
-              </Text>
-            </View>
+            </Paso>
+          ) : null}
 
-            <View className="mt-4">
-              <Boton
-                titulo={
-                  ubicacion.estado === 'concedida'
-                    ? 'Actualizar ubicación'
-                    : 'Usar mi ubicación'
-                }
-                onPress={() => void pedirUbicacion()}
-                variante="secundario"
-                cargando={ubicacion.estado === 'pidiendo'}
+          {paso === 'fecha' ? (
+            <Paso
+              indice={indice}
+              total={PASOS.length}
+              titulo="¿Cuándo naciste?"
+              descripcion="MATCH es solo para mayores de 18 años. La fecha se comprueba en el servidor, no solo aquí."
+            >
+              <CampoFechaNacimiento
+                dia={fecha.dia}
+                mes={fecha.mes}
+                anio={fecha.anio}
+                onCambio={(parte, valor) => setFecha((f) => ({ ...f, [parte]: valor }))}
+                error={errores.fecha}
+                editable={!guardando}
               />
-            </View>
+            </Paso>
+          ) : null}
 
-            {ubicacion.estado === 'denegada' ? (
-              <Text className="mt-3 font-sans text-dato text-apagado">
-                Sin ubicación puedes entrar, pero no verás perfiles hasta que la actives
-                desde los ajustes del móvil.
-              </Text>
-            ) : null}
+          {paso === 'ambiente' ? (
+            <Paso
+              indice={indice}
+              total={PASOS.length}
+              titulo="¿Cómo te gusta quedar?"
+              descripcion="Sirve para que te encuentre gente con planes parecidos. Puedes dejarlo sin especificar."
+            >
+              <Opciones
+                etiqueta="Elige uno"
+                opciones={AMBIENTES}
+                seleccion={ambiente}
+                onSeleccion={setAmbiente}
+              />
+            </Paso>
+          ) : null}
+
+          {paso === 'bio' ? (
+            <Paso
+              indice={indice}
+              total={PASOS.length}
+              titulo="Cuéntate en dos líneas"
+              descripcion="Opcional, pero los perfiles con algo escrito reciben bastantes más respuestas."
+            >
+              <Campo
+                etiqueta="Sobre ti"
+                value={bio}
+                onChangeText={setBio}
+                placeholder="Qué te interesa, qué buscas."
+                multiline
+                numberOfLines={5}
+                maxLength={MAX_BIO}
+                error={errores.bio}
+                contador={{ actual: bio.length, maximo: MAX_BIO }}
+                editable={!guardando}
+                style={{ minHeight: 140, textAlignVertical: 'top' }}
+              />
+            </Paso>
+          ) : null}
+
+          {paso === 'ubicacion' ? (
+            <Paso
+              indice={indice}
+              total={PASOS.length}
+              titulo="¿Dónde te movemos?"
+              descripcion="Sirve para ordenar los perfiles por cercanía. Otras personas solo ven la distancia en kilómetros, nunca el punto."
+            >
+              <View className="rounded-pieza border border-borde bg-superficie p-5">
+                <View className="flex-row items-center gap-3">
+                  <View
+                    className={`h-2 w-2 rounded-pastilla ${
+                      ubicacion.estado === 'concedida' ? 'bg-salvia' : 'bg-borde2'
+                    }`}
+                  />
+                  <Text className="flex-1 font-monoMedia text-dato text-tinta">
+                    {textoUbicacion()}
+                  </Text>
+                </View>
+
+                <View className="mt-4">
+                  <Boton
+                    titulo={
+                      ubicacion.estado === 'concedida'
+                        ? 'Actualizar ubicación'
+                        : 'Usar mi ubicación'
+                    }
+                    onPress={() => void ubicacion.solicitar()}
+                    variante="secundario"
+                    cargando={ubicacion.estado === 'pidiendo'}
+                  />
+                </View>
+
+                {ubicacion.estado === 'denegada' ? (
+                  <Text className="mt-3 font-sans text-dato text-apagado">
+                    Sin ubicación puedes entrar, pero no verás perfiles hasta que la actives
+                    desde los ajustes del móvil.
+                  </Text>
+                ) : null}
+              </View>
+            </Paso>
+          ) : null}
+
+          {/* El pie se queda abajo aunque el paso sea corto: `grow` en el
+              contenedor del scroll y este separador elástico. */}
+          <View className="grow" />
+
+          <View className="mt-8 gap-3">
+            <Boton
+              titulo={ultimo ? 'Entrar en MATCH' : 'Continuar'}
+              onPress={avanzar}
+              cargando={guardando}
+            />
+
+            {indice > 0 ? (
+              <Boton titulo="Atrás" onPress={retroceder} variante="fantasma" />
+            ) : (
+              <Pressable
+                onPress={() => void cerrarSesion()}
+                className="self-center py-3"
+                accessibilityRole="button"
+              >
+                <Text className="font-sans text-dato text-apagado">Cerrar sesión</Text>
+              </Pressable>
+            )}
           </View>
-
-          <Boton
-            titulo="Entrar en MATCH"
-            onPress={() => void continuar()}
-            cargando={guardando}
-          />
-
-          <Pressable
-            onPress={() => void cerrarSesion()}
-            className="mt-6 self-center py-2"
-            accessibilityRole="button"
-          >
-            <Text className="font-sans text-dato text-apagado">Cerrar sesión</Text>
-          </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
