@@ -1,0 +1,92 @@
+# Compila el APK en un runner de GitHub, que sí llega a dl.google.com.
+#
+# No es una web app envuelta en un WebView: MATCH es React Native, así que el
+# paso previo es `expo prebuild`, que genera el proyecto Android a partir de
+# `app.json` y de los plugins. `android/` no se versiona: se regenera aquí.
+#
+# `assembleRelease` y no `assembleDebug` a propósito: la variante debug espera
+# encontrar Metro sirviendo el bundle y en un móvil suelto muestra la pantalla
+# roja. La de release empaqueta el JavaScript dentro del APK. La firma es la
+# clave de depuración que genera la propia plantilla de Expo: sirve para
+# instalar y probar, no para publicar en Play.
+
+name: Build APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/new-session-aaw5lv]
+    paths:
+      - 'app.json'
+      - 'eas.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'src/**'
+      - 'App.tsx'
+      - '.github/workflows/build-apk.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    env:
+      # La clave publicable es segura en cliente: la protección vive en RLS.
+      # Sin estas dos variables el bundle arranca y muere en la primera pantalla.
+      EXPO_PUBLIC_SUPABASE_URL: https://weuzugsbroqgqmecixic.supabase.co
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_yaOXYzeEPb5OdghmLVhC6A_fvZt7smG
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: NDK y CMake
+        run: |
+          sdkmanager --install "ndk;27.1.12297006" "cmake;3.22.1" > /dev/null
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.1.12297006" >> "$GITHUB_ENV"
+
+      - name: Generar el proyecto Android
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Compilar
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleRelease
+
+      - name: Renombrar
+        run: cp android/app/build/outputs/apk/release/app-release.apk MATCH.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MATCH-apk
+          path: MATCH.apk
+          if-no-files-found: error
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk
+          name: APK de prueba
+          body: |
+            Build de prueba de MATCH, firmada con la clave de depuración.
+            Sirve para instalar y probar; para Play hace falta el AAB firmado
+            con tu propio keystore (ver `docs/BUILD.md`).
+          files: MATCH.apk
+          make_latest: false
