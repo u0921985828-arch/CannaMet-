@@ -1,6 +1,6 @@
 # Compila el APK en un runner de GitHub, que sí llega a dl.google.com.
 #
-# No es una web app envuelta en un WebView: MATCH es React Native, así que el
+# No es una web app envuelta en un WebView: CannaMet es React Native, así que el
 # paso previo es `expo prebuild`, que genera el proyecto Android a partir de
 # `app.json` y de los plugins. `android/` no se versiona: se regenera aquí.
 #
@@ -72,12 +72,12 @@ jobs:
           ./gradlew --no-daemon assembleRelease
 
       - name: Renombrar
-        run: cp android/app/build/outputs/apk/release/app-release.apk MATCH.apk
+        run: cp android/app/build/outputs/apk/release/app-release.apk CannaMet.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: MATCH-apk
-          path: MATCH.apk
+          name: CannaMet-apk
+          path: CannaMet.apk
           if-no-files-found: error
 
       - uses: softprops/action-gh-release@v2
@@ -85,10 +85,10 @@ jobs:
           tag_name: apk
           name: APK de prueba
           body: |
-            Build de prueba de MATCH, firmada con la clave de depuración.
+            Build de prueba de CannaMet, firmada con la clave de depuración.
             Sirve para instalar y probar; para Play hace falta el AAB firmado
             con tu propio keystore (ver `docs/BUILD.md`).
-          files: MATCH.apk
+          files: CannaMet.apk
           make_latest: false
 
   # Que compile no quiere decir que arranque. Este trabajo instala el APK en un
@@ -104,7 +104,7 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: MATCH-apk
+          name: CannaMet-apk
 
       - name: Habilitar KVM
         run: |
@@ -126,7 +126,7 @@ jobs:
           target: google_apis
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
-          script: bash scripts/humo-emulador.sh MATCH.apk
+          script: bash scripts/humo-emulador.sh CannaMet.apk
 
       - uses: actions/upload-artifact@v4
         if: always()

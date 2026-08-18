@@ -1,5 +1,5 @@
 -- =============================================================================
--- MATCH — esquema canónico
+-- CannaMet — esquema canónico
 -- =============================================================================
 -- Reconstruye la base entera desde una instancia Supabase limpia.
 -- Extraído del catálogo del proyecto en producción, no de las migraciones:
@@ -686,7 +686,7 @@ begin
 
   v_edad := public.edad_de(p_fecha_nacimiento);
   if v_edad < 18 then
-    raise exception 'MATCH es solo para mayores de 18 anos' using errcode = '22023';
+    raise exception 'CannaMet es solo para mayores de 18 anos' using errcode = '22023';
   end if;
   if v_edad > 120 then
     raise exception 'revisa la fecha de nacimiento' using errcode = '22023';
@@ -1216,13 +1216,13 @@ begin
      and (old.suspendido_hasta is null or old.suspendido_hasta <> new.suspendido_hasta) then
     insert into public.notificaciones (usuario_id, tipo, titulo, cuerpo, datos)
     values (new.id, 'suspension', 'Cuenta suspendida',
-            'Abre MATCH para ver el motivo y apelar si no estás de acuerdo.',
+            'Abre CannaMet para ver el motivo y apelar si no estás de acuerdo.',
             jsonb_build_object('hasta', new.suspendido_hasta));
 
   elsif old.suspendido_hasta is not null and new.suspendido_hasta is null then
     insert into public.notificaciones (usuario_id, tipo, titulo, cuerpo, datos)
     values (new.id, 'suspension', 'Cuenta restablecida',
-            'Ya puedes volver a usar MATCH.', '{}'::jsonb);
+            'Ya puedes volver a usar CannaMet.', '{}'::jsonb);
   end if;
 
   return new;
@@ -1244,7 +1244,7 @@ begin
   if new.estado = 'rechazada' and old.estado = 'pendiente' then
     insert into public.notificaciones (usuario_id, tipo, titulo, cuerpo, datos)
     values (new.usuario_id, 'apelacion', 'Apelación revisada',
-            'Hemos revisado tu apelación. Abre MATCH para ver la respuesta.',
+            'Hemos revisado tu apelación. Abre CannaMet para ver la respuesta.',
             '{}'::jsonb);
   end if;
   return new;

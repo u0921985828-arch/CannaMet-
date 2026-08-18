@@ -13,7 +13,7 @@ venta de productos con THC. Un portavoz de Google aclaró expresamente que no se
 aplica a las apps relacionadas con cannabis en general, solo a las que venden.
 Weedmaps y Eaze siguen en la tienda tras sacar el pedido fuera de la app.
 
-MATCH no tiene transacción de ningún tipo. Por esta vía no hay problema.
+CannaMet no tiene transacción de ningún tipo. Por esta vía no hay problema.
 
 ### Apple: aquí sí
 
@@ -30,6 +30,13 @@ encontrara para consumir cannabis junta fue rechazada por 1.4.3, con el motivo
 **Conclusión: presenta primero en Google Play, no en App Store.** Es al revés de
 lo que dice cualquier consejo genérico, pero aquí el orden importa.
 
+**Decisión tomada (18 de agosto de 2026): solo Google Play, con el nombre
+CannaMet.** La app recupera su identidad donde la política lo permite y renuncia
+a la App Store, donde no cabe. Lo que **no** vuelve es el campo de preferencia de
+consumo: el perfil sigue describiendo ambiente, así que no hay categoría especial
+del art. 9 y la revisión legal sigue siendo la simple. La ficha completa, con
+textos, clasificación por edad y Data Safety, está en `docs/ficha-play.md`.
+
 ### Ya aplicado: el perfil no declara consumo
 
 El campo `preferencia_consumo` **se ha eliminado**. En su lugar hay `ambiente`,
@@ -43,7 +50,7 @@ mantener la coherencia fuera del código:
 - App social para adultos donde se indican preferencias de estilo de vida.
 - Nada en el nombre, subtítulo, palabras clave ni capturas que la convierta en
   "app de cannabis": sin hoja, sin "weed", sin "420", sin nombres de variedades.
-- La descripción no debe sugerir quedar para consumir. MATCH conecta personas;
+- La descripción no debe sugerir quedar para consumir. CannaMet conecta personas;
   lo que hagan después no es funcionalidad de la app.
 - Si el revisor pregunta, la respuesta honesta y verificable es que la app no
   recoge ningún dato sobre consumo de sustancias.
@@ -116,14 +123,15 @@ consentimiento explícito separado.
 
 ### Fichas de tienda
 
-- **Presenta en Google Play primero.** Ver arriba.
-- **Clasificación por edad: 18+** en ambas. Declarar contenido sobre drogas y
+- **Solo Google Play.** Ficha redactada en `docs/ficha-play.md`.
+- **Clasificación por edad: 18+**. Declarar contenido sobre drogas y
   citas, sin adornos: mentir en el cuestionario es motivo de retirada.
 - **Etiquetas de privacidad (Apple) / Data Safety (Google)**: declarar ubicación
   aproximada, identificadores y contenido de usuario. **No** hay datos de salud.
   El token de push cuenta como identificador de aparato: va en esa casilla.
 - **Justificación del permiso de ubicación**: ya está el texto en `app.json`.
-- Capturas sin iconografía cannábica.
+- Capturas sin iconografía cannábica: la identidad la lleva el nombre, y cada
+  hoja de más es una razón para que el revisor mire con lupa.
 
 ### Técnico pendiente
 

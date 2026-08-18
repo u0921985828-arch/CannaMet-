@@ -21,7 +21,7 @@ export function SeccionDatos() {
     try {
       const datos = await exportarMisDatos();
       await Share.share({
-        title: 'Mis datos en MATCH',
+        title: 'Mis datos en CannaMet',
         message: JSON.stringify(datos, null, 2),
       });
     } catch (e) {

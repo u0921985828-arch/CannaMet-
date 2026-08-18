@@ -1,6 +1,6 @@
-# MATCH
+# CannaMet
 
-Social discovery para consumidores de cannabis. Expo + TypeScript + NativeWind + Supabase.
+Social discovery para la comunidad cannábica. Solo Google Play. Expo + TypeScript + NativeWind + Supabase.
 
 ---
 

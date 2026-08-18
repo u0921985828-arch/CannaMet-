@@ -6,8 +6,8 @@
 # multilinea se parte por la mitad.
 set -euo pipefail
 
-APK="${1:-MATCH.apk}"
-PAQUETE=com.match.app
+APK="${1:-CannaMet.apk}"
+PAQUETE=com.cannamet.app
 ESPERA=25
 
 adb install -r "$APK"
@@ -37,4 +37,4 @@ if ! adb shell dumpsys activity activities | grep -q "$PAQUETE"; then
   exit 1
 fi
 
-echo "MATCH arranca y se mantiene en primer plano."
+echo "CannaMet arranca y se mantiene en primer plano."

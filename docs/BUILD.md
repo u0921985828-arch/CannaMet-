@@ -5,12 +5,12 @@
 Cada push a la rama dispara `.github/workflows/build-apk.yml`, que compila en un
 runner de GitHub y publica el resultado:
 
-- **Descarga directa:** https://github.com/u0921985828-arch/CannaMet-/releases/download/apk/MATCH.apk
+- **Descarga directa:** https://github.com/u0921985828-arch/CannaMet-/releases/download/apk/CannaMet.apk
 - También queda en **Actions ▸ el run ▸ Artifacts**.
 
 Va firmado con la clave de depuración: sirve para instalar y probar, no para
 publicar en Play. Para instalarlo hay que permitir «Instalar apps desconocidas»
-en el móvil, o `adb install -r MATCH.apk` por USB.
+en el móvil, o `adb install -r CannaMet.apk` por USB.
 
 El `.env` no se sube al repositorio, así que **una build sin `env` en `eas.json`
 arranca y muere en la primera pantalla** con «Faltan EXPO_PUBLIC_SUPABASE_URL o

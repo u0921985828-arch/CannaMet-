@@ -20,7 +20,7 @@ guarda y se enseña a la autoridad de control si la reclama.
 
 > Un DPD solo es obligatorio si hay observación habitual y sistemática de
 > interesados a gran escala, o tratamiento a gran escala de categorías
-> especiales. MATCH no trata categorías especiales; el volumen decide el resto.
+> especiales. CannaMet no trata categorías especiales; el volumen decide el resto.
 > Que lo confirme el abogado.
 
 ---

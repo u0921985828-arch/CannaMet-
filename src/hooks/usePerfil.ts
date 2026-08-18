@@ -27,7 +27,7 @@ export function validarPerfil(
     errores.fecha = 'Revisa la fecha: no existe.';
   } else {
     const edad = edadDe(fechaIso);
-    if (edad < 18) errores.fecha = 'MATCH es solo para mayores de 18 años.';
+    if (edad < 18) errores.fecha = 'CannaMet es solo para mayores de 18 años.';
     else if (edad > 120) errores.fecha = 'Revisa el año.';
   }
 

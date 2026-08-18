@@ -117,7 +117,7 @@ const PLANTILLA = (titulo, cuerpo) => `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${escapar(titulo)} — MATCH</title>
+<title>${escapar(titulo)} — CannaMet</title>
 <style>
   :root { color-scheme: dark; }
   body {
@@ -142,9 +142,9 @@ const PLANTILLA = (titulo, cuerpo) => `<!doctype html>
 </style>
 </head>
 <body>
-<nav><a href="./index.html">MATCH</a><a href="./terminos.html">Condiciones</a><a href="./privacidad.html">Privacidad</a></nav>
+<nav><a href="./index.html">CannaMet</a><a href="./terminos.html">Condiciones</a><a href="./privacidad.html">Privacidad</a></nav>
 ${cuerpo}
-<footer>MATCH — aplicación social para mayores de 18 años.</footer>
+<footer>CannaMet — aplicación social para mayores de 18 años.</footer>
 </body>
 </html>
 `;
@@ -166,7 +166,7 @@ writeFileSync(
   PLANTILLA(
     'Documentos legales',
     aHtml(
-      `# MATCH\n\nAplicación social para mayores de 18 años.\n\n## Documentos\n\n- [Condiciones de uso](./terminos.html) — versión ${VERSION_TERMINOS}\n- [Política de privacidad](./privacidad.html) — versión ${VERSION_PRIVACIDAD}\n\n## Contacto\n\nDudas: ${DATOS_RESPONSABLE.emailContacto}\n\nAbusos: ${DATOS_RESPONSABLE.emailAbusos}\n`,
+      `# CannaMet\n\nAplicación social para mayores de 18 años.\n\n## Documentos\n\n- [Condiciones de uso](./terminos.html) — versión ${VERSION_TERMINOS}\n- [Política de privacidad](./privacidad.html) — versión ${VERSION_PRIVACIDAD}\n\n## Contacto\n\nDudas: ${DATOS_RESPONSABLE.emailContacto}\n\nAbusos: ${DATOS_RESPONSABLE.emailAbusos}\n`,
     ).replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>'),
   ),
 );

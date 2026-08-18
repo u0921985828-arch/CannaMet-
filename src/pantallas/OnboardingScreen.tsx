@@ -158,7 +158,7 @@ export function OnboardingScreen() {
               indice={indice}
               total={PASOS.length}
               titulo="¿Cuándo naciste?"
-              descripcion="MATCH es solo para mayores de 18 años. La fecha se comprueba en el servidor, no solo aquí."
+              descripcion="CannaMet es solo para mayores de 18 años. La fecha se comprueba en el servidor, no solo aquí."
             >
               <CampoFechaNacimiento
                 dia={fecha.dia}
@@ -258,7 +258,7 @@ export function OnboardingScreen() {
 
           <View className="mt-8 gap-3">
             <Boton
-              titulo={ultimo ? 'Entrar en MATCH' : 'Continuar'}
+              titulo={ultimo ? 'Entrar en CannaMet' : 'Continuar'}
               onPress={avanzar}
               cargando={guardando}
             />

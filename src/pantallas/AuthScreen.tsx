@@ -82,7 +82,7 @@ export function AuthScreen() {
           <View className="mb-12">
             <View className="h-[3px] w-14 bg-ambar" />
             <Text className="mt-6 font-display text-display tracking-tight text-tinta">
-              MATCH
+              CannaMet
             </Text>
             <Text className="mt-2 font-mono text-etiqueta uppercase text-apagado">
               Gente cerca, sin postureo

@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "MATCH",
-    "slug": "match",
+    "name": "CannaMet",
+    "slug": "cannamet",
     "version": "1.0.0",
     "orientation": "portrait",
-    "scheme": "match",
+    "scheme": "cannamet",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
@@ -15,13 +15,13 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.match.app",
+      "bundleIdentifier": "com.cannamet.app",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "MATCH usa tu ubicación para mostrarte a qué distancia están otras personas. Tus coordenadas nunca se comparten."
+        "NSLocationWhenInUseUsageDescription": "CannaMet usa tu ubicación para mostrarte a qué distancia están otras personas. Tus coordenadas nunca se comparten."
       }
     },
     "android": {
-      "package": "com.match.app",
+      "package": "com.cannamet.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#14110E"
@@ -40,7 +40,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "MATCH usa tu ubicación para mostrarte a qué distancia están otras personas. Tus coordenadas nunca se comparten."
+          "locationWhenInUsePermission": "CannaMet usa tu ubicación para mostrarte a qué distancia están otras personas. Tus coordenadas nunca se comparten."
         }
       ]
     ],

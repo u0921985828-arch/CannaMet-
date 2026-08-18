@@ -28,12 +28,12 @@ export const TERMINOS = `# Condiciones de uso
 Versión ${VERSION_TERMINOS}
 
 ## 1. Quién presta el servicio
-MATCH es una aplicación operada por ${DATOS_RESPONSABLE.titular}, NIF ${DATOS_RESPONSABLE.nif}, con domicilio en ${DATOS_RESPONSABLE.domicilio}. Puedes escribirnos a ${DATOS_RESPONSABLE.emailContacto}.
+CannaMet es una aplicación operada por ${DATOS_RESPONSABLE.titular}, NIF ${DATOS_RESPONSABLE.nif}, con domicilio en ${DATOS_RESPONSABLE.domicilio}. Puedes escribirnos a ${DATOS_RESPONSABLE.emailContacto}.
 
-## 2. Qué es y qué no es MATCH
-MATCH sirve para conocer personas cercanas con intereses afines. **No es un mercado.** Está prohibido usar la aplicación para ofrecer, vender, comprar, intercambiar o promocionar sustancias de cualquier tipo, sean legales o no, gratis o de pago. Detectarlo implica la retirada inmediata de la cuenta.
+## 2. Qué es y qué no es CannaMet
+CannaMet sirve para conocer personas cercanas con intereses afines. **No es un mercado.** Está prohibido usar la aplicación para ofrecer, vender, comprar, intercambiar o promocionar sustancias de cualquier tipo, sean legales o no, gratis o de pago. Detectarlo implica la retirada inmediata de la cuenta.
 
-MATCH no verifica la identidad de las personas usuarias. Quedar con alguien que has conocido aquí es tu decisión y tu responsabilidad.
+CannaMet no verifica la identidad de las personas usuarias. Quedar con alguien que has conocido aquí es tu decisión y tu responsabilidad.
 
 ## 3. Edad mínima
 Solo para mayores de 18 años. Facilitar una fecha de nacimiento falsa es motivo de cierre inmediato de la cuenta. Si detectamos o nos informan de que una cuenta pertenece a un menor, la suspendemos sin previo aviso.
@@ -60,7 +60,7 @@ Lo que escribes sigue siendo tuyo. Nos concedes permiso para almacenarlo y mostr
 Puedes borrar tu cuenta en cualquier momento desde Perfil → Tus datos. El borrado es inmediato e irreversible. Las denuncias presentadas sobre tu cuenta se conservan sin tus datos personales: borrarse no cancela una revisión en curso.
 
 ## 8. Limitación de responsabilidad
-MATCH se presta "tal cual". No garantizamos disponibilidad ininterrumpida ni respondemos de lo que ocurra en los encuentros que se acuerden a través de la aplicación, en la medida en que lo permita la ley aplicable.
+CannaMet se presta "tal cual". No garantizamos disponibilidad ininterrumpida ni respondemos de lo que ocurra en los encuentros que se acuerden a través de la aplicación, en la medida en que lo permita la ley aplicable.
 
 ## 9. Ley aplicable
 Legislación española. Si eres consumidor, conservas los derechos que te reconoce la normativa de tu lugar de residencia.

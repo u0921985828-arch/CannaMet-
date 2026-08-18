@@ -129,7 +129,7 @@ export function RootNavigator() {
   const suspendido =
     !!perfil?.suspendido_hasta && new Date(perfil.suspendido_hasta) > new Date();
 
-  if (cargando) return <Cargando texto="MATCH" />;
+  if (cargando) return <Cargando texto="CannaMet" />;
 
   return (
     <NavigationContainer theme={TEMA} ref={refNavegacion}>

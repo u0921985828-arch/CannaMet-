@@ -195,13 +195,13 @@ begin
      and (old.suspendido_hasta is null or old.suspendido_hasta <> new.suspendido_hasta) then
     insert into public.notificaciones (usuario_id, tipo, titulo, cuerpo, datos)
     values (new.id, 'suspension', 'Cuenta suspendida',
-            'Abre MATCH para ver el motivo y apelar si no estas de acuerdo.',
+            'Abre CannaMet para ver el motivo y apelar si no estas de acuerdo.',
             jsonb_build_object('hasta', new.suspendido_hasta));
 
   elsif old.suspendido_hasta is not null and new.suspendido_hasta is null then
     insert into public.notificaciones (usuario_id, tipo, titulo, cuerpo, datos)
     values (new.id, 'suspension', 'Cuenta restablecida',
-            'Ya puedes volver a usar MATCH.', '{}'::jsonb);
+            'Ya puedes volver a usar CannaMet.', '{}'::jsonb);
   end if;
 
   return new;
@@ -223,7 +223,7 @@ begin
   if new.estado = 'rechazada' and old.estado = 'pendiente' then
     insert into public.notificaciones (usuario_id, tipo, titulo, cuerpo, datos)
     values (new.usuario_id, 'apelacion', 'Apelacion revisada',
-            'Hemos revisado tu apelacion. Abre MATCH para ver la respuesta.',
+            'Hemos revisado tu apelacion. Abre CannaMet para ver la respuesta.',
             '{}'::jsonb);
   end if;
   return new;
