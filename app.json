@@ -8,6 +8,7 @@
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#14110E"
     },
@@ -21,13 +22,17 @@
     },
     "android": {
       "package": "com.match.app",
-      "adaptiveIcon": { "backgroundColor": "#14110E" },
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#14110E"
+      },
       "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
     },
     "plugins": [
       [
         "expo-notifications",
         {
+          "icon": "./assets/notificacion.png",
           "color": "#D99B3C",
           "defaultChannel": "avisos"
         }
@@ -38,6 +43,7 @@
           "locationWhenInUsePermission": "MATCH usa tu ubicación para mostrarte a qué distancia están otras personas. Tus coordenadas nunca se comparten."
         }
       ]
-    ]
+    ],
+    "icon": "./assets/icon.png"
   }
 }
