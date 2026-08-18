@@ -132,7 +132,12 @@ consentimiento explícito separado.
   APNs y FCM a EAS, y comprobar la entrega en un móvil.
 - **Probar en dispositivo.** El backend está verificado a fondo; los gestos, el
   teclado y los WebSockets de Realtime no.
-- **Build de producción** con EAS: `eas build --platform ios --profile production`.
+- **Build de producción** con EAS. Pasos exactos en `docs/BUILD.md`. El APK
+  instalable sale del perfil `preview`; Play exige el AAB del perfil
+  `production`.
+- **CORREGIDO:** ningún perfil de `eas.json` llevaba la clave de Supabase. Toda
+  build que no fuera `development` habría arrancado y muerto en la primera
+  pantalla. Las tres la llevan ya.
 - **Rotar la clave publicable** si el repositorio ha sido público en algún momento.
 
 ---
