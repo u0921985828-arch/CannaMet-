@@ -100,6 +100,8 @@ jobs:
     timeout-minutes: 45
 
     steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
         with:
           name: MATCH-apk
@@ -124,28 +126,7 @@ jobs:
           target: google_apis
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
-          script: |
-            adb install -r MATCH.apk
-            adb logcat -c
-            adb shell am start -n com.match.app/.MainActivity
-            sleep 25
-            adb exec-out screencap -p > pantalla.png
-
-            # La pantalla roja de React Native no es una excepcion: hay que
-            # buscarla por su rastro en el log, o el test pasaria con la app rota.
-            if adb logcat -d | grep -qE 'FATAL EXCEPTION|AndroidRuntime: Process: com.match.app.*Error'; then
-              echo '::error::excepcion fatal al arrancar'
-              adb logcat -d | tail -80
-              exit 1
-            fi
-            if adb logcat -d | grep -qiE 'ReactNativeJS.*(Unable to load script|red ?box)'; then
-              echo '::error::el bundle no cargo'
-              exit 1
-            fi
-            adb shell dumpsys activity activities | grep -q 'com.match.app' || {
-              echo '::error::la actividad no esta en pantalla'; exit 1; }
-
-            echo 'MATCH arranca y se queda en primer plano.'
+          script: bash scripts/humo-emulador.sh MATCH.apk
 
       - uses: actions/upload-artifact@v4
         if: always()
