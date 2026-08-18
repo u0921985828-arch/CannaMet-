@@ -103,7 +103,9 @@ consentimiento explícito separado.
    repaso del abogado. Ojo al apartado 5: el token de push viaja a Expo y de
    ahí a APNs/FCM, y esa vía hay que confirmarla.
 
-6. **Dar de alta al menos un moderador**, o la cola no la lee nadie:
+6. **Dar de alta al menos un moderador**, o la cola no la lee nadie. Ahora
+   mismo no hay ni un usuario registrado, así que no hay UUID que dar de alta
+   todavía; en cuanto te registres:
 
    ```sql
    insert into public.moderadores (usuario_id, nota) values ('<uuid>', 'quien');

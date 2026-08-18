@@ -200,6 +200,10 @@ puede ser una vía de escape de la moderación.
 publica en Releases. Este proyecto no versiona `android/`: lo regenera
 `expo prebuild` en cada build.
 
+Un segundo trabajo instala ese APK en un emulador, lo abre y falla si aparece
+una excepción fatal, si el bundle no carga o si la actividad no llega a primer
+plano. Que compile no quiere decir que arranque. Sube también una captura.
+
 Antes de tocar CI conviene ejecutar `npx expo export --platform android`, que
 pasa Metro entero sin necesitar el SDK de Android. Los dos primeros builds
 cayeron empaquetando el JavaScript y ese comando los habría cazado en local.

@@ -18,7 +18,10 @@ begin;
 create extension if not exists postgis with schema extensions;
 create extension if not exists pg_cron;
 -- pg_net: el cron despierta a la Edge Function que entrega los avisos push.
-create extension if not exists pg_net;
+-- `with schema extensions` no es cosmetico: sin el, la extension queda
+-- registrada en `public`, que es justo lo que el linter de Supabase señala.
+-- Sus funciones viven en el esquema `net` en cualquier caso.
+create extension if not exists pg_net with schema extensions;
 
 -- ──────────────────────────────── ENUMERADOS ────────────────────────────────
 
@@ -99,8 +102,14 @@ $$;
 
 -- ───────────────────────────────── PERFILES ─────────────────────────────────
 
+-- STABLE y no IMMUTABLE: la funcion lee `current_date`, asi que su resultado
+-- cambia cada dia. Marcarla immutable seria mentirle al planificador, que puede
+-- plegarla a constante en un plan cacheado y congelar ahi la edad — justo lo que
+-- el cron de las 03:30 existe para evitar.
 create or replace function public.edad_de(p_fecha date)
-returns int language sql immutable
+returns int
+language sql stable
+set search_path = pg_catalog, pg_temp
 as $$ select extract(year from age(current_date, p_fecha))::int; $$;
 
 create table public.perfiles (
