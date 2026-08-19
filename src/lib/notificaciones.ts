@@ -38,6 +38,28 @@ async function rpcOlvidar(token: string): Promise<void> {
  */
 let tokenActual: string | null = null;
 
+/**
+ * Recupera el token de este aparato sin pedir permiso ni molestar: solo sirve
+ * para poder darlo de baja. Devuelve null en cuanto algo no está en su sitio.
+ */
+async function tokenSiLoHay(): Promise<string | null> {
+  try {
+    if (!Device.isDevice) return null;
+
+    const { status } = await Notifications.getPermissionsAsync();
+    if (status !== 'granted') return null;
+
+    const projectId =
+      Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
+    if (!projectId) return null;
+
+    const { data } = await Notifications.getExpoPushTokenAsync({ projectId });
+    return data;
+  } catch {
+    return null;
+  }
+}
+
 /** Con la app abierta el aviso se enseña igual: si no, parece que no llegan. */
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -115,11 +137,19 @@ export async function activarAvisos(): Promise<string | null> {
   }
 }
 
-/** Se llama antes de cerrar sesión, mientras el token de acceso sigue valiendo. */
+/**
+ * Se llama antes de cerrar sesión, mientras el token de acceso sigue valiendo.
+ *
+ * Si en esta ejecución no se llegó a registrar nada, el token se vuelve a pedir
+ * antes de rendirse: el caso que importa es justo ese —la app se abrió con
+ * sesión ya iniciada y se cierra sin pasar por `activarAvisos`—, y ahí sigue
+ * habiendo una fila en `dispositivos` atando este móvil a la cuenta que sale.
+ */
 export async function desactivarAvisos(): Promise<void> {
-  if (!tokenActual) return;
+  const token = tokenActual ?? (await tokenSiLoHay());
+  if (!token) return;
   try {
-    await rpcOlvidar(tokenActual);
+    await rpcOlvidar(token);
     log.info(AMBITO, 'aparato dado de baja');
   } catch (error) {
     log.aviso(AMBITO, 'no se pudo dar de baja', {

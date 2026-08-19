@@ -141,25 +141,53 @@ Deno.serve(async (peticion: Request) => {
   const entregados = [...okPorAviso.keys()];
   const fallidos = [...falloPorAviso.keys()].filter((id) => !okPorAviso.has(id));
 
-  if (entregados.length > 0) {
-    await supabase.rpc('notificaciones_marcar', { p_ids: entregados, p_error: null });
-  }
-
-  for (const id of fallidos) {
-    await supabase.rpc('notificaciones_marcar', {
-      p_ids: [id],
-      p_error: (falloPorAviso.get(id) ?? 'error').slice(0, 300),
+  // Si el cierre falla hay que enterarse: la fila se queda abierta y el aviso
+  // se vuelve a enviar al minuto siguiente. Un 200 diciendo que todo fue bien
+  // convierte un push duplicado en un misterio.
+  let cerroTodo = true;
+  const cerrar = async (ids: string[], error: string | null) => {
+    if (ids.length === 0) return;
+    const { error: fallo } = await supabase.rpc('notificaciones_marcar', {
+      p_ids: ids,
+      p_error: error,
     });
+    if (fallo) {
+      cerroTodo = false;
+      console.error('[notificar] no se pudo cerrar', ids.length, fallo.message);
+    }
+  };
+
+  await cerrar(entregados, null);
+
+  // Los fallos se agrupan por motivo: en una caida de Expo, marcarlos de uno en
+  // uno son hasta 500 viajes de red por invocacion, cada minuto.
+  const porMotivo = new Map<string, string[]>();
+  for (const id of fallidos) {
+    const motivo = (falloPorAviso.get(id) ?? 'error').slice(0, 300);
+    const lista = porMotivo.get(motivo) ?? [];
+    lista.push(id);
+    porMotivo.set(motivo, lista);
   }
+  for (const [motivo, ids] of porMotivo) await cerrar(ids, motivo);
 
   if (tokensMuertos.length > 0) {
-    await supabase.rpc('dispositivos_baja', { p_tokens: [...new Set(tokensMuertos)] });
+    const { error: fallo } = await supabase.rpc('dispositivos_baja', {
+      p_tokens: [...new Set(tokensMuertos)],
+    });
+    if (fallo) {
+      cerroTodo = false;
+      console.error('[notificar] no se pudieron dar de baja los tokens', fallo.message);
+    }
   }
 
-  return Response.json({
-    reclamadas: filas.length,
-    enviadas: entregados.length,
-    fallidas: fallidos.length,
-    tokens_dados_de_baja: tokensMuertos.length,
-  });
+  return Response.json(
+    {
+      reclamadas: filas.length,
+      enviadas: entregados.length,
+      fallidas: fallidos.length,
+      tokens_dados_de_baja: tokensMuertos.length,
+      cierre_completo: cerroTodo,
+    },
+    { status: cerroTodo ? 200 : 500 },
+  );
 });

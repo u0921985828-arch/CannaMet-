@@ -124,7 +124,7 @@ export function RootNavigator() {
     marcarConsentimiento,
   } = useSesion();
 
-  useAvisos();
+  const { alEstarListoElNavegador } = useAvisos();
 
   const suspendido =
     !!perfil?.suspendido_hasta && new Date(perfil.suspendido_hasta) > new Date();
@@ -132,7 +132,7 @@ export function RootNavigator() {
   if (cargando) return <Cargando texto="CannaMet" />;
 
   return (
-    <NavigationContainer theme={TEMA} ref={refNavegacion}>
+    <NavigationContainer theme={TEMA} ref={refNavegacion} onReady={alEstarListoElNavegador}>
       {!sesion ? (
         <AuthScreen />
       ) : necesitaConsentimiento ? (

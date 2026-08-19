@@ -332,6 +332,9 @@ create table public.notificaciones (
   -- llamar a eso enviado sería mentir en la única traza que queda del aviso.
   cerrado_en timestamptz,
   intentos   int not null default 0,
+  -- Sin recordar cuando fue el ultimo intento, los cinco se gastaban en cinco
+  -- minutos seguidos y una caida corta de Expo perdia el aviso para siempre.
+  intentado_en timestamptz,
   error      text
 );
 
@@ -1279,14 +1282,19 @@ begin
   return query
   with elegidas as (
     select n.id from public.notificaciones n
-    where n.cerrado_en is null and n.intentos < 5
+    where n.cerrado_en is null
+      and n.intentos < 5
+      -- Espera cuadratica: 1, 4, 9 y 16 minutos. Los mismos cinco intentos
+      -- cubren media hora larga en vez de cinco minutos.
+      and (n.intentado_en is null
+           or n.intentado_en < now() - make_interval(mins => n.intentos * n.intentos))
     order by n.creado_en
     limit least(greatest(p_limite, 1), 500)
     for update skip locked
   ),
   marcadas as (
     update public.notificaciones n
-    set intentos = n.intentos + 1
+    set intentos = n.intentos + 1, intentado_en = now()
     from elegidas e where n.id = e.id
     returning n.id, n.usuario_id, n.tipo, n.titulo, n.cuerpo, n.datos
   )
@@ -1327,14 +1335,20 @@ $$;
 create or replace function public.notificaciones_despachar()
 returns void
 language plpgsql security definer
-set search_path = public, net, vault, pg_temp
+set search_path = public, extensions, net, vault, pg_temp
 as $$
 declare
   v_url   text;
   v_clave text;
 begin
+  -- Misma condicion que el reclamo: si todo lo pendiente esta esperando, no
+  -- tiene sentido despertar a la Edge Function para que no haga nada.
   if not exists (
-    select 1 from public.notificaciones where cerrado_en is null and intentos < 5
+    select 1 from public.notificaciones n
+    where n.cerrado_en is null
+      and n.intentos < 5
+      and (n.intentado_en is null
+           or n.intentado_en < now() - make_interval(mins => n.intentos * n.intentos))
   ) then
     return;
   end if;
