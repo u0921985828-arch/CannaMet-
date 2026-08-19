@@ -38,6 +38,12 @@
         }
       ],
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "CannaMet accede a tus fotos solo para que elijas la de tu perfil."
+        }
+      ],
+      [
         "expo-location",
         {
           "locationWhenInUsePermission": "CannaMet usa tu ubicación para mostrarte a qué distancia están otras personas. Tus coordenadas nunca se comparten."

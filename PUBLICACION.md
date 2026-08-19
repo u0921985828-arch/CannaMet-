@@ -128,7 +128,8 @@ consentimiento explícito separado.
   citas, sin adornos: mentir en el cuestionario es motivo de retirada.
 - **Etiquetas de privacidad (Apple) / Data Safety (Google)**: declarar ubicación
   aproximada, identificadores y contenido de usuario. **No** hay datos de salud.
-  El token de push cuenta como identificador de aparato: va en esa casilla.
+  El token de push cuenta como identificador de aparato: va en esa casilla. Y
+  ahora hay **fotos**, que son contenido de usuario: marcar esa casilla también.
 - **Justificación del permiso de ubicación**: ya está el texto en `app.json`.
 - Capturas sin iconografía cannábica: la identidad la lleva el nombre, y cada
   hoja de más es una razón para que el revisor mire con lupa.

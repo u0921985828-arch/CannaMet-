@@ -1,6 +1,7 @@
 import React from 'react';
 import { Text, View } from 'react-native';
 
+import { Foto } from './Foto';
 import { distanciaLegible } from '@/lib/formato';
 import { etiquetaAmbiente, type Candidato } from '@/types/modelos';
 
@@ -27,20 +28,26 @@ export function TarjetaPerfil({ candidato }: { candidato: Candidato }) {
       <View className="h-[3px] bg-ambarProfundo" />
       <View className="h-px bg-borde2" />
 
-      <View className="flex-1 px-6 pb-6 pt-7">
+      {/* La foto ocupa la mitad de arriba. Sin foto queda el sello con la
+          inicial, que es como se veia la app antes: distinto, no incompleto. */}
+      <View className="h-1/2 w-full overflow-hidden">
+        <Foto ruta={candidato.foto} nombre={candidato.nombre} />
+      </View>
+
+      <View className="flex-1 px-6 pb-6 pt-5">
         <Text className="font-mono text-etiqueta uppercase text-ambar">
           {banda(candidato.distancia_km)}
         </Text>
 
         <Text
-          className="mt-3 font-display text-display text-tinta"
+          className="mt-2 font-display text-titulo text-tinta"
           numberOfLines={2}
           adjustsFontSizeToFit
         >
           {candidato.nombre}
         </Text>
 
-        <View className="mt-6 h-px bg-borde" />
+        <View className="mt-4 h-px bg-borde" />
         <Fila clave="Edad" valor={`${candidato.edad}`} />
         <View className="h-px bg-borde" />
         <Fila clave="Distancia" valor={distanciaLegible(candidato.distancia_km)} />
@@ -48,7 +55,7 @@ export function TarjetaPerfil({ candidato }: { candidato: Candidato }) {
         <Fila clave="Ambiente" valor={etiquetaAmbiente(candidato.ambiente)} />
         <View className="h-px bg-borde" />
 
-        <View className="mt-6 flex-1">
+        <View className="mt-4 flex-1">
           {candidato.bio ? (
             <Text className="font-displayItalic text-cuerpoL leading-7 text-tinta2">
               {candidato.bio}

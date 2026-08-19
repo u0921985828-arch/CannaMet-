@@ -13,6 +13,9 @@ export type PerfilPropio = Omit<Tablas<'perfiles'>, 'coordenadas' | 'suspendido_
 
 export type Aceptacion = Tablas<'aceptaciones_legales'>;
 
+/** Ruta dentro del bucket `fotos`. Nunca una URL: las firmadas caducan. */
+export type RutaFoto = string | null;
+
 /** Candidato del feed. Trae distancia, nunca el punto. */
 export type Candidato = RetornoRpc<'descubrir_perfiles'>[number];
 

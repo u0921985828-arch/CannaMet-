@@ -3,6 +3,7 @@ import { Alert, FlatList, Pressable, RefreshControl, Text, View } from 'react-na
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AvisoError, Cargando, Vacio } from '@/componentes/Estados';
+import { Foto } from '@/componentes/Foto';
 import { useColaApelaciones, useColaModeracion } from '@/hooks/useModeracionPanel';
 import { fechaRelativa } from '@/lib/formato';
 import {
@@ -62,12 +63,24 @@ function Caso({
           </Text>
         </View>
 
-        <Text className="mt-3 font-display text-cuerpoL text-tinta">
-          {caso.reportado_nombre ?? 'Perfil borrado'}
-          {!caso.reportado_existe ? (
-            <Text className="font-sans text-dato text-apagado"> · cuenta eliminada</Text>
+        {/* La foto denunciada, a la vista: resolver una denuncia por contenido
+            sexual sin poder mirarla es resolverla a ciegas. */}
+        <View className="mt-3 flex-row items-center gap-4">
+          {caso.reportado_existe ? (
+            <Foto
+              ruta={caso.reportado_foto}
+              nombre={caso.reportado_nombre ?? '?'}
+              lado={56}
+            />
           ) : null}
-        </Text>
+
+          <Text className="flex-1 font-display text-cuerpoL text-tinta">
+            {caso.reportado_nombre ?? 'Perfil borrado'}
+            {!caso.reportado_existe ? (
+              <Text className="font-sans text-dato text-apagado"> · cuenta eliminada</Text>
+            ) : null}
+          </Text>
+        </View>
 
         {caso.detalle ? (
           <Text className="mt-2 font-sans text-dato text-tinta2">{caso.detalle}</Text>

@@ -55,6 +55,8 @@ export function usePerfil() {
           edad: fila.edad,
           bio: fila.bio,
           ambiente: fila.ambiente,
+          // `guardar_perfil` no toca la foto: se conserva la que ya hubiera.
+          foto: perfil?.foto ?? null,
           creado_en: perfil?.creado_en ?? fila.actualizado_en,
           actualizado_en: fila.actualizado_en,
           suspendido_hasta: perfil?.suspendido_hasta ?? null,

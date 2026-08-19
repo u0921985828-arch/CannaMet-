@@ -14,6 +14,7 @@ import type {
   ResumenMatch,
 } from '@/types/modelos';
 import { log, medir } from './log';
+import { olvidarFirmas } from './fotos';
 import { desactivarAvisos } from './notificaciones';
 import { supabase } from './supabaseClient';
 
@@ -50,6 +51,8 @@ export async function cerrarSesion(): Promise<void> {
   // El aparato se da de baja ANTES del signOut: despues el token de acceso ya
   // no vale y este movil seguiria recibiendo los avisos de la cuenta cerrada.
   await desactivarAvisos();
+  // Las URL firmadas de la cuenta que sale no valen para la que entre.
+  olvidarFirmas();
   await medir(AMBITO, 'auth.signOut', async () => {
     const { error } = await supabase.auth.signOut();
     comprobar(error);
@@ -67,7 +70,7 @@ export async function obtenerPerfilPropio(usuarioId: string): Promise<PerfilProp
       const { data, error } = await supabase
         .from('perfiles')
         .select(
-          'id, nombre, edad, bio, ambiente, creado_en, actualizado_en, suspendido_hasta, suspension_motivo, fecha_nacimiento',
+          'id, nombre, edad, bio, ambiente, foto, creado_en, actualizado_en, suspendido_hasta, suspension_motivo, fecha_nacimiento',
         )
         .eq('id', usuarioId)
         .maybeSingle();

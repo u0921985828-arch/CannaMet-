@@ -118,6 +118,9 @@ create table public.perfiles (
   edad              int  not null check (edad between 18 and 120),
   fecha_nacimiento  date,
   bio               text check (char_length(bio) <= 500),
+  -- Ruta dentro del bucket `fotos`, con la forma <uid>/<fichero>. Nunca una
+  -- URL: las firmadas caducan y guardar una seria guardar basura.
+  foto              text check (foto is null or foto ~ '^[0-9a-f-]{36}/[a-zA-Z0-9._-]{1,80}$'),
   ambiente          public.ambiente_preferido not null default 'prefiero_no_decir',
   coordenadas       extensions.geography(Point, 4326),
   suspendido_hasta  timestamptz,
@@ -526,12 +529,12 @@ create or replace function public.descubrir_perfiles(
 )
 returns table (
   id uuid, nombre text, edad int, bio text,
-  ambiente public.ambiente_preferido, distancia_km numeric
+  ambiente public.ambiente_preferido, foto text, distancia_km numeric
 )
 language sql stable security definer
 set search_path = public, extensions, pg_temp
 as $$
-  select p.id, p.nombre, p.edad, p.bio, p.ambiente,
+  select p.id, p.nombre, p.edad, p.bio, p.ambiente, p.foto,
          round((extensions.st_distance(p.coordenadas, yo.coordenadas) / 1000)::numeric, 1)
   from public.perfiles p
   cross join lateral (
@@ -627,14 +630,14 @@ $$;
 create or replace function public.listar_matches()
 returns table (
   match_id uuid, otro_id uuid, otro_nombre text, otro_edad int,
-  otro_ambiente public.ambiente_preferido,
+  otro_ambiente public.ambiente_preferido, otro_foto text,
   ultimo_mensaje text, ultimo_mensaje_en timestamptz,
   no_leidos bigint, creado_en timestamptz
 )
 language sql stable security definer
 set search_path = public, pg_temp
 as $$
-  select m.id, o.id, o.nombre, o.edad, o.ambiente,
+  select m.id, o.id, o.nombre, o.edad, o.ambiente, o.foto,
          um.contenido, um.creado_en, coalesce(nl.total, 0), m.creado_en
   from public.matches m
   join public.perfiles o
@@ -903,14 +906,15 @@ returns table (
   id uuid, motivo public.motivo_reporte, origen public.origen_reporte,
   detalle text, creado_en timestamptz,
   reportado_id uuid, reportado_nombre text, reportado_existe boolean,
-  reportado_suspendido_hasta timestamptz,
+  reportado_foto text, reportado_suspendido_hasta timestamptz,
   veces_reportado bigint, veces_bloqueado bigint
 )
 language sql stable security definer
 set search_path = public, pg_temp
 as $$
   select r.id, r.motivo, r.origen, r.detalle, r.creado_en,
-         r.reportado_id, r.reportado_nombre, (p.id is not null), p.suspendido_hasta,
+         r.reportado_id, r.reportado_nombre, (p.id is not null),
+         p.foto, p.suspendido_hasta,
          (select count(*) from public.reportes r2 where r2.reportado_id = r.reportado_id),
          (select count(*) from public.bloqueos b where b.bloqueado_id = r.reportado_id)
   from public.reportes r
@@ -1375,6 +1379,95 @@ end;
 $$;
 
 -- =============================================================================
+-- FOTOS DE PERFIL
+-- =============================================================================
+-- Bucket PRIVADO. Uno publico serviria cualquier foto a cualquiera con la URL,
+-- para siempre y sin sesion; en una app 18+ con geolocalizacion eso es
+-- exactamente lo que no se puede hacer. El cliente pide una URL firmada de una
+-- hora cada vez que necesita pintarla.
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('fotos', 'fotos', false, 5242880,
+        array['image/jpeg','image/png','image/webp'])
+on conflict (id) do update set
+  public = false,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+-- La ruta es <uid>/<fichero> y la politica compara el primer tramo con
+-- auth.uid(): nadie escribe en la carpeta de otro aunque adivine el nombre.
+create policy fotos_subir_propia on storage.objects
+  for insert to authenticated
+  with check (
+    bucket_id = 'fotos'
+    and (storage.foldername(name))[1] = (select auth.uid())::text
+  );
+
+create policy fotos_reemplazar_propia on storage.objects
+  for update to authenticated
+  using (
+    bucket_id = 'fotos'
+    and (storage.foldername(name))[1] = (select auth.uid())::text
+  );
+
+create policy fotos_borrar_propia on storage.objects
+  for delete to authenticated
+  using (
+    bucket_id = 'fotos'
+    and (storage.foldername(name))[1] = (select auth.uid())::text
+  );
+
+-- Leer: cualquiera con sesion salvo bloqueo. Si no, bloquear a alguien le
+-- seguiria dejando ver tu cara mientras tu ya no ves la suya.
+create policy fotos_leer on storage.objects
+  for select to authenticated
+  using (
+    bucket_id = 'fotos'
+    and not public.hay_bloqueo(((storage.foldername(name))[1])::uuid)
+  );
+
+-- Subir y apuntar van separados porque en el alta el perfil todavia no existe:
+-- la politica de Storage solo mira la carpeta, asi que la foto puede viajar
+-- antes que la fila.
+create or replace function public.fijar_mi_foto(p_ruta text)
+returns void
+language plpgsql security definer
+set search_path = public, pg_temp
+as $$
+declare v_yo uuid := (select auth.uid());
+begin
+  if v_yo is null then
+    raise exception 'no autenticado' using errcode = '28000';
+  end if;
+
+  -- Sin esto, cualquiera podria apuntar su perfil a la foto de otra persona.
+  if p_ruta is not null and split_part(p_ruta, '/', 1) <> v_yo::text then
+    raise exception 'esa foto no es tuya' using errcode = '42501';
+  end if;
+
+  update public.perfiles set foto = p_ruta where id = v_yo;
+end;
+$$;
+
+-- Solo suelta la referencia: el fichero se conserva porque borrarlo dejaria la
+-- denuncia sin la prueba que la motivo.
+create or replace function public.moderacion_borrar_foto(
+  p_usuario_id uuid,
+  p_nota       text default null
+)
+returns void
+language plpgsql security definer
+set search_path = public, pg_temp
+as $$
+begin
+  if not public.soy_moderador() then
+    raise exception 'no autorizado' using errcode = '42501';
+  end if;
+  update public.perfiles set foto = null where id = p_usuario_id;
+end;
+$$;
+
+-- =============================================================================
 -- DERECHOS DE LA PERSONA USUARIA (RGPD)
 -- =============================================================================
 
@@ -1443,7 +1536,7 @@ as $$
     'generado_en', now(),
     'perfil', (
       select to_jsonb(x) from (
-        select p.id, p.nombre, p.edad, p.bio, p.ambiente,
+        select p.id, p.nombre, p.edad, p.bio, p.ambiente, p.foto,
                (p.coordenadas is not null) as tiene_ubicacion,
                p.creado_en, p.actualizado_en, p.suspendido_hasta, p.suspension_motivo
         from public.perfiles p where p.id = (select auth.uid())
@@ -1555,7 +1648,7 @@ revoke all on public.dispositivos, public.notificaciones from authenticated;
 -- persona y cualquiera sabría qué moderador le sancionó.
 revoke select on public.perfiles from authenticated;
 grant select (
-  id, nombre, edad, bio, ambiente, creado_en, actualizado_en,
+  id, nombre, edad, bio, ambiente, foto, creado_en, actualizado_en,
   suspendido_hasta, suspension_motivo, fecha_nacimiento
 ) on public.perfiles to authenticated;
 
@@ -1623,7 +1716,9 @@ revoke execute on function
   public.borrar_mi_cuenta(),
   public.exportar_mis_datos(),
   public.registrar_dispositivo(text, public.plataforma_dispositivo),
-  public.olvidar_dispositivo(text)
+  public.olvidar_dispositivo(text),
+  public.fijar_mi_foto(text),
+  public.moderacion_borrar_foto(uuid, text)
   from public, anon;
 
 grant execute on function
@@ -1653,7 +1748,9 @@ grant execute on function
   public.borrar_mi_cuenta(),
   public.exportar_mis_datos(),
   public.registrar_dispositivo(text, public.plataforma_dispositivo),
-  public.olvidar_dispositivo(text)
+  public.olvidar_dispositivo(text),
+  public.fijar_mi_foto(text),
+  public.moderacion_borrar_foto(uuid, text)
   to authenticated;
 
 -- =============================================================================

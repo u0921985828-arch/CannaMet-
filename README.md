@@ -212,6 +212,30 @@ Detalles y firma para Play en `docs/BUILD.md`.
 
 ---
 
+## Fotos de perfil
+
+Una por perfil, en un bucket **privado**. Uno público serviría cualquier foto a
+cualquiera con la URL, para siempre y sin sesión; en una app 18+ con
+geolocalización eso no se puede hacer. El cliente pide una URL firmada de una
+hora y la cachea en memoria.
+
+- La ruta es `<uid>/<fichero>` y las políticas de Storage comparan el primer
+  tramo con `auth.uid()`: nadie escribe en la carpeta de otro.
+- Leer requiere sesión y **respeta el bloqueo**. Si no, bloquear a alguien le
+  seguiría dejando ver tu cara mientras tú ya no ves la suya.
+- Subir y apuntar la ruta van separados. En el alta el perfil todavía no existe
+  cuando eliges la foto, así que el fichero viaja antes que la fila y solo se
+  apunta si el alta cuaja. Si no cuaja, se descarta.
+- El nombre lleva marca de tiempo: con nombre fijo, la caché del móvil seguiría
+  enseñando la foto vieja después de cambiarla.
+- Un perfil sin foto enseña la inicial, que es como se veía la app entera antes.
+  No se ve incompleto, se ve distinto.
+- La cola de moderación enseña la foto denunciada, y hay
+  `moderacion_borrar_foto` para soltarla. Suelta la referencia y conserva el
+  fichero: borrarlo dejaría la denuncia sin la prueba que la motivó.
+
+---
+
 ## Textos legales
 
 `src/legal/textos.ts` es la única fuente. La app los enseña desde ahí y
@@ -345,8 +369,6 @@ pero los gestos, el teclado y los WebSockets de Realtime necesitan un móvil.
 
 ## Pendiente
 
-- No hay fotos en el modelo. Las tarjetas son tipográficas por diseño, pero si
-  quieres imágenes hace falta Supabase Storage y una política de acceso aparte.
 - **Los avisos push no se han probado en un aparato real.** Falta subir la clave
   de FCM V1 a EAS o meter `google-services.json`; el APK actual instala y
   funciona, pero no recibe avisos. El recorrido de base

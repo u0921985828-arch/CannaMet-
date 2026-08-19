@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Boton } from '@/componentes/Boton';
 import { Campo } from '@/componentes/Campo';
 import { aIso, CampoFechaNacimiento } from '@/componentes/CampoFechaNacimiento';
+import { CampoFoto } from '@/componentes/CampoFoto';
 import { AvisoError } from '@/componentes/Estados';
 import { Opciones } from '@/componentes/Opciones';
 import { SeccionBloqueados } from '@/componentes/SeccionBloqueados';
@@ -25,7 +26,7 @@ import { AMBIENTES, type AmbientePreferido } from '@/types/modelos';
 const MAX_BIO = 500;
 
 export function PerfilScreen() {
-  const { perfil, sesion } = useSesion();
+  const { perfil, sesion, fijarPerfil } = useSesion();
   const { guardar, guardando, error } = usePerfil();
   const ubicacion = useUbicacion();
 
@@ -84,6 +85,18 @@ export function PerfilScreen() {
           </Text>
 
           {error ? <AvisoError mensaje={error} /> : null}
+
+          {/* La foto se guarda sola al elegirla, no espera al boton de guardar:
+              subir y apuntar la ruta ya es una operacion cerrada en si misma. */}
+          {perfil ? (
+            <View className="mb-8">
+              <CampoFoto
+                usuarioId={perfil.id}
+                ruta={perfil.foto}
+                onCambio={(ruta) => fijarPerfil({ ...perfil, foto: ruta })}
+              />
+            </View>
+          ) : null}
 
           {guardado ? (
             <View className="mb-4 rounded-pieza border border-salvia bg-superficie px-4 py-3">

@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AvisoError, Cargando, Vacio } from '@/componentes/Estados';
 import { useMatches } from '@/hooks/useMatches';
+import { Foto } from '@/componentes/Foto';
 import { fechaRelativa } from '@/lib/formato';
 import type { ParamsRaiz } from '@/navegacion/tipos';
 import { etiquetaAmbiente, type ResumenMatch } from '@/types/modelos';
@@ -24,17 +25,9 @@ function Fila({ match, onPress }: { match: ResumenMatch; onPress: () => void }) 
       style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
     >
       <View className="flex-row items-center gap-4 px-gutter py-5">
-        {/* Inicial como sello: no hay fotos en el modelo de datos */}
-        <View
-          className={`h-14 w-14 items-center justify-center rounded-tarjeta border ${
-            sinAbrir ? 'border-ambar bg-ambarSuave' : 'border-borde bg-superficie'
-          }`}
-        >
-          <Text
-            className={`font-display text-titulo ${sinAbrir ? 'text-ambar' : 'text-tinta2'}`}
-          >
-            {match.otro_nombre.charAt(0).toUpperCase()}
-          </Text>
+        {/* Con foto se pinta; sin ella queda la inicial como sello. */}
+        <View className={sinAbrir ? 'rounded-tarjeta border-2 border-ambar' : undefined}>
+          <Foto ruta={match.otro_foto} nombre={match.otro_nombre} lado={56} />
         </View>
 
         <View className="flex-1">

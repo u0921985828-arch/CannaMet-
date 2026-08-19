@@ -12,12 +12,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Boton } from '@/componentes/Boton';
 import { Campo } from '@/componentes/Campo';
 import { aIso, CampoFechaNacimiento } from '@/componentes/CampoFechaNacimiento';
+import { CampoFoto } from '@/componentes/CampoFoto';
 import { AvisoError } from '@/componentes/Estados';
 import { Opciones } from '@/componentes/Opciones';
 import { Paso } from '@/componentes/Paso';
+import { useSesion } from '@/contexts/SesionContext';
 import { usePerfil, validarPerfil, type ErroresPerfil } from '@/hooks/usePerfil';
 import { useUbicacion } from '@/hooks/useUbicacion';
 import { cerrarSesion } from '@/lib/api';
+import { descartarFichero, fijarFoto } from '@/lib/fotos';
 import { AMBIENTES, type AmbientePreferido } from '@/types/modelos';
 
 const MAX_BIO = 500;
@@ -27,7 +30,7 @@ const MAX_BIO = 500;
  * ambiente, biografía y ubicación en la misma vista: se lee como un trámite y
  * la mitad de la gente lo abandona en la primera pantalla.
  */
-const PASOS = ['nombre', 'fecha', 'ambiente', 'bio', 'ubicacion'] as const;
+const PASOS = ['nombre', 'foto', 'fecha', 'ambiente', 'bio', 'ubicacion'] as const;
 type ClavePaso = (typeof PASOS)[number];
 
 /** Qué campo valida cada paso. La ubicación y el ambiente no pueden fallar. */
@@ -38,11 +41,13 @@ const CAMPO_DEL_PASO: Partial<Record<ClavePaso, keyof ErroresPerfil>> = {
 };
 
 export function OnboardingScreen() {
+  const { usuarioId } = useSesion();
   const [indice, setIndice] = useState(0);
   const [nombre, setNombre] = useState('');
   const [fecha, setFecha] = useState({ dia: '', mes: '', anio: '' });
   const [bio, setBio] = useState('');
   const [ambiente, setAmbiente] = useState<AmbientePreferido>('prefiero_no_decir');
+  const [foto, setFoto] = useState<string | null>(null);
   const [errores, setErrores] = useState<ErroresPerfil>({});
 
   const { guardar, guardando, error } = usePerfil();
@@ -67,7 +72,7 @@ export function OnboardingScreen() {
       return;
     }
 
-    await guardar({
+    const ok = await guardar({
       nombre: nombre.trim(),
       fechaNacimiento: fechaIso as string,
       bio: bio.trim() || null,
@@ -75,6 +80,11 @@ export function OnboardingScreen() {
       lat: ubicacion.coords?.lat ?? null,
       lng: ubicacion.coords?.lng ?? null,
     });
+
+    // La foto se apunta ahora, no al subirla: hasta este momento no habia fila
+    // de perfil que apuntar. Si el alta no cuaja, el fichero sobra.
+    if (ok && foto) await fijarFoto(foto);
+    else if (!ok && foto) await descartarFichero(foto);
     // Al fijar el perfil, RootNavigator conmuta solo a las pestañas.
   };
 
@@ -149,6 +159,22 @@ export function OnboardingScreen() {
                 autoCapitalize="words"
                 returnKeyType="next"
                 onSubmitEditing={avanzar}
+              />
+            </Paso>
+          ) : null}
+
+          {paso === 'foto' && usuarioId ? (
+            <Paso
+              indice={indice}
+              total={PASOS.length}
+              titulo="Ponle cara"
+              descripcion="Opcional, y puedes cambiarla luego. Sin foto tu perfil enseña la inicial de tu nombre."
+            >
+              <CampoFoto
+                usuarioId={usuarioId}
+                ruta={foto}
+                onCambio={setFoto}
+                apuntarEnElPerfil={false}
               />
             </Paso>
           ) : null}

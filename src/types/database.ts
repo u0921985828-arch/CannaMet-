@@ -185,6 +185,7 @@ export type Database = {
         Row: {
           actualizado_en: string;
           bio: string | null;
+          foto: string | null;
           coordenadas: unknown;
           creado_en: string;
           edad: number;
@@ -199,6 +200,7 @@ export type Database = {
         Insert: {
           actualizado_en?: string;
           bio?: string | null;
+          foto?: string | null;
           coordenadas?: unknown;
           creado_en?: string;
           edad: number;
@@ -209,6 +211,7 @@ export type Database = {
         Update: {
           actualizado_en?: string;
           bio?: string | null;
+          foto?: string | null;
           coordenadas?: unknown;
           creado_en?: string;
           edad?: number;
@@ -351,6 +354,7 @@ export type Database = {
           reportado_existe: boolean;
           reportado_id: string | null;
           reportado_nombre: string | null;
+          reportado_foto: string | null;
           reportado_suspendido_hasta: string | null;
           veces_bloqueado: number;
           veces_reportado: number;
@@ -394,6 +398,7 @@ export type Database = {
           id: string;
           nombre: string;
           ambiente: Database['public']['Enums']['ambiente_preferido'];
+          foto: string | null;
         }[];
       };
       es_miembro_de_match: { Args: { p_match_id: string }; Returns: boolean };
@@ -426,6 +431,7 @@ export type Database = {
           otro_id: string;
           otro_nombre: string;
           otro_ambiente: Database['public']['Enums']['ambiente_preferido'];
+          otro_foto: string | null;
           ultimo_mensaje: string | null;
           ultimo_mensaje_en: string | null;
         }[];
@@ -448,6 +454,11 @@ export type Database = {
         Returns: undefined;
       };
       olvidar_dispositivo: { Args: { p_token: string }; Returns: undefined };
+      fijar_mi_foto: { Args: { p_ruta: string | null }; Returns: undefined };
+      moderacion_borrar_foto: {
+        Args: { p_usuario_id: string; p_nota?: string | null };
+        Returns: undefined;
+      };
     };
     Enums: {
       accion_swipe: 'like' | 'dislike';

@@ -32,7 +32,8 @@ Conoce gente afín cerca de ti. Comunidad para mayores de 18 años.
 CannaMet conecta a personas adultas con intereses afines que están cerca.
 
 CÓMO FUNCIONA
-Creas un perfil con tu nombre, tu edad y una descripción breve. Eliges qué tipo
+Creas un perfil con tu nombre, tu edad, una foto si quieres y una descripción
+breve. Eliges qué tipo
 de planes te van: casa, monte, música, quedadas o cocinar y crear. Ves perfiles
 cercanos, y cuando el interés es mutuo se abre un chat privado.
 
@@ -122,7 +123,7 @@ cuestionario de contenido: lo es funcionalmente, y ocultarlo no sale gratis.
 | Mensajes                       | Sí        | No          | Sí          | Funciones de la app              |
 | Identificadores de dispositivo | Sí        | Sí          | No          | Notificaciones push (Expo → FCM) |
 | **Datos de salud**             | **No**    | **No**      | —           | —                                |
-| Fotos o vídeos                 | No        | No          | —           | —                                |
+| Fotos                          | Sí        | No          | No          | Foto de perfil, opcional         |
 
 Declarar también:
 
